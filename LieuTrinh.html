@@ -47,9 +47,9 @@
         <table class="header-table">
             <tr>
                 <td class="spa-info">
-                    <div class="spa-name" id="txtTenSpa">＜Tên Spa＞</div>
-                    <div id="txtDiaChi">＜Địa Chỉ＞</div>
-                    <div id="txtSDT">＜SĐT＞</div>
+                    <div class="spa-name" id="txtTenSpa"></div>
+                    <div id="txtDiaChi"></div>
+                    <div id="txtSDT"></div>
                 </td>
                 <td>
                     <table style="width: 100%; border-collapse: collapse;">
@@ -58,19 +58,19 @@
                         </tr>
                         <tr>
                             <td class="border-cell" style="width: 30%; font-weight: bold;">Thông Tin</td>
-                            <td class="border-cell" id="txtTenKhach">＜Tên Khách＞</td>
+                            <td class="border-cell" id="txtTenKhach"></td>
                         </tr>
                         <tr>
                             <td class="border-cell" style="font-weight: bold;">Liệu Trình:</td>
-                            <td class="border-cell" id="txtTenLieuTrinh">＜Tên Liệu Trình＞</td>
+                            <td class="border-cell" id="txtTenLieuTrinh"></td>
                         </tr>
                         <tr>
                             <td class="border-cell" style="font-weight: bold;">Số Buổi:</td>
-                            <td class="border-cell" id="txtSoBuoi">＜SO BUOI＞</td>
+                            <td class="border-cell" id="txtSoBuoi"></td>
                         </tr>
                         <tr>
                             <td class="border-cell" style="font-weight: bold;">Đã Làm:</td>
-                            <td class="border-cell" id="txtDaLam">＜DA LAM＞</td>
+                            <td class="border-cell" id="txtDaLam"></td>
                         </tr>
                     </table>
                 </td>
@@ -96,7 +96,7 @@
     </div>
 
     <script>
-        // 1. Hàm giải mã và render dữ liệu nguyên bản (Bao gồm bộ lọc sửa dấu phẩy thừa của AppSheet)
+        // 1. Hàm giải mã và sửa triệt để lỗi mảng chuỗi trống/dư dấu phẩy từ AppSheet
         function loadDataFromHash() {
             try {
                 const hash = window.location.hash.substring(1);
@@ -104,20 +104,30 @@
                 
                 let jsonString = decodeURIComponent(hash).trim();
                 
-                // Tự động gọt dấu phẩy thừa ở cuối danh sách ChiTiet nếu có để không bị crash JSON.parse
-                jsonString = jsonString.replace(/,\s*\]\s*\}/g, ']}');
+                // Thuật toán dọn dẹp dấu phẩy thừa thông minh:
+                // Tìm kiếm vị trí dấu phẩy cuối cùng nằm trước dấu đóng mảng "]" của ChiTiet để xử lý triệt để
+                const chiTietIndex = jsonString.lastIndexOf('"ChiTiet": [');
+                if (chiTietIndex !== -1) {
+                    let partBefore = jsonString.substring(0, chiTietIndex);
+                    let partArray = jsonString.substring(chiTietIndex);
+                    
+                    // Xóa dấu phẩy thừa đứng ngay trước dấu ] của mảng ChiTiet
+                    partArray = partArray.replace(/,\s*\]/g, ']');
+                    jsonString = partBefore + partArray;
+                }
                 
                 const data = JSON.parse(jsonString);
                 
+                // Đổ dữ liệu, nếu trống thì giữ nguyên rỗng ""
                 document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
                 document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
                 document.getElementById('txtSDT').innerText = data.SDT || '';
                 document.getElementById('txtTenKhach').innerText = data.TenKhach || '';
                 document.getElementById('txtTenLieuTrinh').innerText = data.TenLieuTrinh || '';
-                document.getElementById('txtSoBuoi').innerText = data.SoBuoi || '0';
-                document.getElementById('txtDaLam').innerText = data.DaLam || '0';
+                document.getElementById('txtSoBuoi').innerText = data.SoBuoi !== undefined ? data.SoBuoi : '';
+                document.getElementById('txtDaLam').innerText = data.DaLam !== undefined ? data.DaLam : '';
                 
-                // Gán ngược dữ liệu vào dataset của thẻ #print-area để đặt tên file ảnh động giống App Hụi
+                // Gán thuộc tính dataset phục vụ việc đặt tên file ảnh
                 const element = document.getElementById('print-area');
                 element.dataset.sdt = data.SDT || '';
                 element.dataset.hoivien = data.TenKhach || 'Khach_Hang';
@@ -127,6 +137,7 @@
                 
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
                     data.ChiTiet.forEach((item, index) => {
+                        // Kiểm tra nếu item hợp lệ và có thuộc tính Ngay
                         if (item && item.Ngay) {
                             const row = `<tr>
                                 <td>${index + 1}</td>
@@ -137,7 +148,10 @@
                             tbody.insertAdjacentHTML('beforeend', row);
                         }
                     });
-                } else {
+                }
+                
+                // Nếu sau khi quét mà bảng vẫn không có dòng nào hợp lệ thì hiển thị thông báo trống
+                if (tbody.children.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="4" style="color: #999; padding: 15px;">Chưa thực hiện buổi nào</td></tr>`;
                 }
             } catch (error) {
@@ -152,7 +166,7 @@
             return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
         }
 
-        // --- Sao chép logic 3 hàm xử lý hình ảnh chuẩn từ App Hụi của bạn ---
+        // --- Giữ nguyên gốc 3 hàm chụp ảnh từ App Hụi phối hợp với #print-area ---
         function copyBillAsImage(element) { 
             const c = document.querySelector('.bill-controls'); 
             c.style.display = 'none'; 
