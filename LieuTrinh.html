@@ -6,32 +6,43 @@
     <title>Phiếu Liệu Trình</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; color: #333; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #f0f4f4; color: #333; }
         
-        /* Thanh điều khiển nút bấm */
-        .bill-controls { max-width: 650px; margin: 0 auto 15px auto; display: flex; gap: 10px; justify-content: center; }
-        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 5px; font-size: 14px; }
+        /* Thanh điều khiển nút bấm hiện đại */
+        .bill-controls { max-width: 650px; margin: 0 auto 20px auto; display: flex; gap: 12px; justify-content: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; color: white; display: flex; align-items: center; gap: 6px; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-download { background-color: #2ecc71; }
         .btn-copy { background-color: #3498db; }
-        .share-btn { background-color: #e67e22; }
-        .btn:hover { opacity: 0.9; }
+        .share-btn { background-color: #4db7b3; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         .btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
         
-        /* Khung phiếu liệu trình để chụp ảnh */
-        #print-area { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border: 1px solid #000; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        /* Khung phiếu liệu trình cao cấp để chụp ảnh */
+        #print-area { max-width: 650px; margin: 0 auto; background: white; padding: 35px; border-radius: 8px; border: 1px solid #e1e8e8; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         
-        /* Thiết kế Table gốc */
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .header-table td { padding: 6px; vertical-align: top; font-size: 14px; }
-        .spa-info { width: 40%; font-size: 14px; line-height: 1.5; }
-        .spa-name { font-weight: bold; font-size: 16px; color: #000; }
-        .info-title { background-color: #f2f2f2; font-weight: bold; text-align: center; border: 1px solid #000; }
-        .border-cell { border: 1px solid #000; padding: 6px 10px; }
+        /* Thiết kế phần Header của Spa */
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+        .header-table td { padding: 0; vertical-align: top; }
+        .spa-info { width: 45%; font-size: 13px; line-height: 1.6; color: #555; padding-right: 15px; }
+        .spa-name { font-weight: bold; font-size: 18px; color: #4db7b3; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        .detail-title { font-weight: bold; font-size: 15px; margin: 10px 0 5px 0; text-transform: uppercase; }
-        .main-table { width: 100%; border-collapse: collapse; }
-        .main-table th, .main-table td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 14px; }
-        .main-table th { background-color: #f2f2f2; }
+        /* Khung thông tin khách hàng bên phải */
+        .info-title { background-color: #4db7b3; color: white; font-weight: bold; text-align: center; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; padding: 8px !important; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+        .customer-table { width: 100%; border-collapse: collapse; background: #fafcfc; border-radius: 4px; overflow: hidden; border: 1px solid #cee5e4; }
+        .customer-table td { padding: 8px 12px; font-size: 13.5px; border-bottom: 1px solid #e6f2f1; color: #444; }
+        .label-cell { font-weight: 600; color: #555; width: 35%; background: #f2f8f7; }
+        .value-cell { font-weight: bold; color: #111; }
+        
+        /* Tiêu đề phần chi tiết buổi */
+        .detail-title { font-weight: bold; font-size: 14px; margin: 25px 0 10px 0; text-transform: uppercase; color: #4db7b3; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px; }
+        .detail-title::before { content: ""; display: inline-block; width: 4px; height: 14px; background-color: #4db7b3; border-radius: 2px; }
+        
+        /* Bảng chi tiết buổi hiện đại */
+        .main-table { width: 100%; border-collapse: collapse; border-radius: 6px; overflow: hidden; border: 1px solid #cee5e4; }
+        .main-table th { background-color: #4db7b3; color: white; font-weight: 600; padding: 10px 8px; font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.5px; border: none; }
+        .main-table td { padding: 10px 12px; font-size: 13.5px; color: #444; border-bottom: 1px solid #eaf4f3; text-align: center; }
+        .main-table tbody tr:nth-child(even) { background-color: #f8fbfb; } /* Hiệu ứng dòng kẻ xen kẽ nhẹ nhàng */
+        .main-table tbody tr:last-child td { border-bottom: none; }
         .text-left { text-align: left !important; }
     </style>
 </head>
@@ -49,54 +60,53 @@
                 <td class="spa-info">
                     <div class="spa-name" id="txtTenSpa"></div>
                     <div id="txtDiaChi"></div>
-                    <div id="txtSDT"></div>
+                    <div style="margin-top: 2px; font-weight: 500;" id="txtSDT"></div>
                 </td>
-                <td>
-                    <table style="width: 100%; border-collapse: collapse;">
+                <td style="width: 55%;">
+                    <table class="customer-table">
                         <tr>
-                            <td class="info-title" colspan="2">Thông Tin</td>
+                            <td class="info-title" colspan="2">Thông Tin Khách Hàng</td>
                         </tr>
                         <tr>
-                            <td class="border-cell" style="width: 30%; font-weight: bold;">Thông Tin</td>
-                            <td class="border-cell" id="txtTenKhach"></td>
+                            <td class="label-cell">Khách Hàng:</td>
+                            <td class="value-cell" id="txtTenKhach"></td>
                         </tr>
                         <tr>
-                            <td class="border-cell" style="font-weight: bold;">Liệu Trình:</td>
-                            <td class="border-cell" id="txtTenLieuTrinh"></td>
+                            <td class="label-cell">Liệu Trình:</td>
+                            <td class="value-cell" style="color: #38928f;" id="txtTenLieuTrinh"></td>
                         </tr>
                         <tr>
-                            <td class="border-cell" style="font-weight: bold;">Số Buổi:</td>
-                            <td class="border-cell" id="txtSoBuoi"></td>
+                            <td class="label-cell">Số Buổi:</td>
+                            <td class="value-cell" id="txtSoBuoi"></td>
                         </tr>
                         <tr>
-                            <td class="border-cell" style="font-weight: bold;">Đã Làm:</td>
-                            <td class="border-cell" id="txtDaLam"></td>
+                            <td class="label-cell">Đã Làm:</td>
+                            <td class="value-cell" style="color: #2ecc71;" id="txtDaLam"></td>
                         </tr>
                     </table>
                 </td>
             </tr>
         </table>
 
-        <div class="detail-title">Chi Tiết</div>
+        <div class="detail-title">Nhật Ký Liệu Trình</div>
         <table class="main-table">
             <thead>
                 <tr>
                     <th style="width: 10%;">STT</th>
-                    <th style="width: 25%;">Buổi</th>
-                    <th style="width: 25%;">Ngày</th>
-                    <th style="width: 40%;">ghi chú</th>
+                    <th style="width: 20%;">Buổi</th>
+                    <th style="width: 25%;">Ngày làm</th>
+                    <th style="width: 45%;">Ghi chú chi tiết</th>
                 </tr>
             </thead>
             <tbody id="tblChiTiet">
                 <tr>
-                    <td colspan="4" style="color: #999; font-style: italic; padding: 20px;">Chưa thực hiện buổi nào</td>
+                    <td colspan="4" style="color: #999; font-style: italic; padding: 25px; background: #fafafa;">Chưa ghi nhận thực hiện buổi nào</td>
                 </tr>
             </tbody>
         </table>
     </div>
 
     <script>
-        // 1. Hàm giải mã và sửa triệt để lỗi mảng chuỗi trống/dư dấu phẩy từ AppSheet
         function loadDataFromHash() {
             try {
                 const hash = window.location.hash.substring(1);
@@ -104,28 +114,38 @@
                 
                 let jsonString = decodeURIComponent(hash).trim();
                 
-                // Thuật toán dọn dẹp dấu phẩy thừa thông minh:
-                // Tìm kiếm vị trí dấu phẩy cuối cùng nằm trước dấu đóng mảng "]" của ChiTiet để xử lý triệt để
-                const chiTietIndex = jsonString.lastIndexOf('"ChiTiet": [');
-                if (chiTietIndex !== -1) {
-                    let partBefore = jsonString.substring(0, chiTietIndex);
-                    let partArray = jsonString.substring(chiTietIndex);
+                // Thuật toán dọn chuỗi an toàn mảng ChiTiet
+                const chiTietStart = jsonString.indexOf('"ChiTiet": [');
+                if (chiTietStart !== -1) {
+                    const prefix = jsonString.substring(0, chiTietStart);
+                    let arrayPart = jsonString.substring(chiTietStart);
                     
-                    // Xóa dấu phẩy thừa đứng ngay trước dấu ] của mảng ChiTiet
-                    partArray = partArray.replace(/,\s*\]/g, ']');
-                    jsonString = partBefore + partArray;
+                    const lastBracketIndex = arrayPart.lastIndexOf(']');
+                    if (lastBracketIndex !== -1) {
+                        let contentInside = arrayPart.substring(12, lastBracketIndex).trim();
+                        
+                        if (contentInside.endsWith(',')) {
+                            contentInside = contentInside.substring(0, contentInside.length - 1).trim();
+                        } else if (contentInside.replace(/\s/g, '').endsWith(',}')) {
+                            contentInside = contentInside.replace(/,\s*$/, '').trim();
+                        }
+                        
+                        contentInside = contentInside.replace(/,\s*,/g, ','); 
+                        const suffix = arrayPart.substring(lastBracketIndex);
+                        jsonString = prefix + '"ChiTiet": [' + contentInside + suffix;
+                    }
                 }
                 
                 const data = JSON.parse(jsonString);
                 
-                // Đổ dữ liệu, nếu trống thì giữ nguyên rỗng ""
+                // Đổ dữ liệu text
                 document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
                 document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
-                document.getElementById('txtSDT').innerText = data.SDT || '';
+                document.getElementById('txtSDT').innerText = data.SDT ? 'SĐT: ' + data.SDT : '';
                 document.getElementById('txtTenKhach').innerText = data.TenKhach || '';
                 document.getElementById('txtTenLieuTrinh').innerText = data.TenLieuTrinh || '';
-                document.getElementById('txtSoBuoi').innerText = data.SoBuoi !== undefined ? data.SoBuoi : '';
-                document.getElementById('txtDaLam').innerText = data.DaLam !== undefined ? data.DaLam : '';
+                document.getElementById('txtSoBuoi').innerText = data.SoBuoi !== undefined ? data.SoBuoi + ' buổi' : '';
+                document.getElementById('txtDaLam').innerText = data.DaLam !== undefined ? data.DaLam + ' buổi' : '';
                 
                 // Gán thuộc tính dataset phục vụ việc đặt tên file ảnh
                 const element = document.getElementById('print-area');
@@ -137,25 +157,23 @@
                 
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
                     data.ChiTiet.forEach((item, index) => {
-                        // Kiểm tra nếu item hợp lệ và có thuộc tính Ngay
                         if (item && item.Ngay) {
                             const row = `<tr>
-                                <td>${index + 1}</td>
-                                <td>Buổi ${index + 1}</td>
-                                <td>${formatDate(item.Ngay)}</td>
-                                <td class="text-left">${item.GhiChu || ''}</td>
+                                <td style="font-weight: 600; color: #777;">${index + 1}</td>
+                                <td style="font-weight: 500;">Buổi ${index + 1}</td>
+                                <td style="color: #555;">${formatDate(item.Ngay)}</td>
+                                <td class="text-left" style="color: #222;">${item.GhiChu || '-'}</td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         }
                     });
                 }
                 
-                // Nếu sau khi quét mà bảng vẫn không có dòng nào hợp lệ thì hiển thị thông báo trống
                 if (tbody.children.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" style="color: #999; padding: 15px;">Chưa thực hiện buổi nào</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" style="color: #999; padding: 25px; background: #fafafa; font-style: italic;">Chưa ghi nhận thực hiện buổi nào</td></tr>`;
                 }
             } catch (error) {
-                console.error("Lỗi parse dữ liệu JSON:", error);
+                console.error("Lỗi biên dịch dữ liệu JSON:", error);
             }
         }
 
@@ -166,15 +184,15 @@
             return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
         }
 
-        // --- Giữ nguyên gốc 3 hàm chụp ảnh từ App Hụi phối hợp với #print-area ---
+        // --- Giữ nguyên cấu trúc logic 3 hàm xử lý chụp ảnh ảnh từ app gốc ---
         function copyBillAsImage(element) { 
             const c = document.querySelector('.bill-controls'); 
             c.style.display = 'none'; 
-            html2canvas(element, { scale: 1.5, useCORS: true }).then(canvas => { 
+            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => { 
                 canvas.toBlob(blob => { 
                     try { 
                         window.focus(); 
-                        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => alert('Đã copy ảnh bill vào bộ nhớ tạm!')).catch(err => { 
+                        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => alert('Đã copy ảnh phiếu vào bộ nhớ tạm!')).catch(err => { 
                             console.error(err); 
                             alert('Lỗi khi copy: ' + err); 
                         }); 
@@ -195,7 +213,7 @@
             const filename = (sdt ? sdt : `Phieu_LT_${hoivien.replace(/\s+/g, '_')}`) + '.png'; 
             const c = document.querySelector('.bill-controls'); 
             c.style.display = 'none'; 
-            html2canvas(element, { scale: 1.5, useCORS: true }).then(canvas => { 
+            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => { 
                 const link = document.createElement('a'); 
                 link.download = filename; 
                 link.href = canvas.toDataURL("image/png"); 
@@ -219,7 +237,7 @@
             const c = document.querySelector('.bill-controls'); 
             c.style.display = 'none'; 
             try { 
-                const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false }); 
+                const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false }); 
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); 
                 const file = new File([blob], filename, { type: 'image/png' }); 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) { 
