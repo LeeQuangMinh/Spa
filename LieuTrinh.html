@@ -7,18 +7,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; color: #333; }
-        .actions { max-width: 650px; margin: 0 auto 15px auto; display: flex; gap: 10px; justify-content: center; }
+        
+        /* Thanh điều khiển nút bấm */
+        .bill-controls { max-width: 650px; margin: 0 auto 15px auto; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 5px; font-size: 14px; }
         .btn-download { background-color: #2ecc71; }
-        .btn-copy { background-color: #3498db; }
-        .btn-share-zalo { background-color: #0068ff; }
-        .btn-share-mess { background-color: #a334fa; }
+        .btn-copy-img { background-color: #3498db; }
+        .btn-copy-link { background-color: #9b59b6; }
+        .share-btn { background-color: #e67e22; }
         .btn:hover { opacity: 0.9; }
+        .btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
         
-        /* Khung hóa đơn để chụp ảnh */
+        /* Khung phiếu liệu trình */
         #print-area { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border: 1px solid #000; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
         
-        /* Thiết kế Table chuẩn theo hình 3 */
+        /* Thiết kế Table mẫu */
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .header-table td { padding: 6px; vertical-align: top; font-size: 14px; }
         .spa-info { width: 40%; font-size: 14px; line-height: 1.5; }
@@ -35,73 +38,80 @@
 </head>
 <body>
 
-    <div class="actions">
-        <button class="btn btn-download" onclick="downloadForm()">💾 Tải Ảnh Phiếu</button>
-        <button class="btn btn-copy" onclick="copyCurrentLink(true)">🔗 Chỉ Copy Link</button>
-        <button class="btn btn-share-zalo" onclick="shareToPlatform('zalo')">💬 Gửi qua Zalo</button>
-        <button class="btn btn-share-mess" onclick="shareToPlatform('messenger')">⚡ Gửi qua Messenger</button>
+    <div class="bill-controls">
+        <button class="btn btn-download" onclick="downloadBillAsImage(document.getElementById('wrapper-bill'))">💾 Tải Ảnh Phiếu</button>
+        <button class="btn btn-copy-img" onclick="copyBillAsImage(document.getElementById('wrapper-bill'))">📷 Copy Ảnh</button>
+        <button class="btn btn-copy-link" onclick="copyCurrentLink()">🔗 Copy Link URL</button>
+        <button class="btn share-btn" onclick="shareBillAsImage(document.getElementById('wrapper-bill'))">📤 Gửi / Chia Sẻ</button>
     </div>
 
-    <div id="print-area">
-        <table class="header-table">
-            <tr>
-                <td class="spa-info">
-                    <div class="spa-name" id="txtTenSpa">＜Tên Spa＞</div>
-                    <div id="txtDiaChi">＜Địa Chỉ＞</div>
-                    <div id="txtSDT">＜SĐT＞</div>
-                </td>
-                <td>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr>
-                            <td class="info-title" colspan="2">Thông Tin</td>
-                        </tr>
-                        <tr>
-                            <td class="border-cell" style="width: 30%; font-weight: bold;">Thông Tin</td>
-                            <td class="border-cell" id="txtTenKhach">＜Tên Khách＞</td>
-                        </tr>
-                        <tr>
-                            <td class="border-cell" style="font-weight: bold;">Liệu Trình:</td>
-                            <td class="border-cell" id="txtTenLieuTrinh">＜Tên Liệu Trình＞</td>
-                        </tr>
-                        <tr>
-                            <td class="border-cell" style="font-weight: bold;">Số Buổi:</td>
-                            <td class="border-cell" id="txtSoBuoi">＜SO BUOI＞</td>
-                        </tr>
-                        <tr>
-                            <td class="border-cell" style="font-weight: bold;">Đã Làm:</td>
-                            <td class="border-cell" id="txtDaLam">＜DA LAM＞</td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
+    <div id="wrapper-bill" data-sdt="" data-hoivien="">
+        <div id="print-area">
+            <table class="header-table">
+                <tr>
+                    <td class="spa-info">
+                        <div class="spa-name" id="txtTenSpa">＜Tên Spa＞</div>
+                        <div id="txtDiaChi">＜Địa Chỉ＞</div>
+                        <div id="txtSDT">＜SĐT＞</div>
+                    </td>
+                    <td>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <td class="info-title" colspan="2">Thông Tin</td>
+                            </tr>
+                            <tr>
+                                <td class="border-cell" style="width: 30%; font-weight: bold;">Thông Tin</td>
+                                <td class="border-cell" id="txtTenKhach">＜Tên Khách＞</td>
+                            </tr>
+                            <tr>
+                                <td class="border-cell" style="font-weight: bold;">Liệu Trình:</td>
+                                <td class="border-cell" id="txtTenLieuTrinh">＜Tên Liệu Trình＞</td>
+                            </tr>
+                            <tr>
+                                <td class="border-cell" style="font-weight: bold;">Số Buổi:</td>
+                                <td class="border-cell" id="txtSoBuoi">0</td>
+                            </tr>
+                            <tr>
+                                <td class="border-cell" style="font-weight: bold;">Đã Làm:</td>
+                                <td class="border-cell" id="txtDaLam">0</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
 
-        <div class="detail-title">Chi Tiết</div>
-        <table class="main-table">
-            <thead>
-                <tr>
-                    <th style="width: 10%;">STT</th>
-                    <th style="width: 25%;">Buổi</th>
-                    <th style="width: 25%;">Ngày</th>
-                    <th style="width: 40%;">ghi chú</th>
-                </tr>
-            </thead>
-            <tbody id="tblChiTiet">
-                <tr>
-                    <td colspan="4" style="color: #999; font-style: italic; padding: 20px;">Chưa có dữ liệu...</td>
-                </tr>
-            </tbody>
-        </table>
+            <div class="detail-title">Chi Tiết</div>
+            <table class="main-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">STT</th>
+                        <th style="width: 25%;">Buổi</th>
+                        <th style="width: 25%;">Ngày</th>
+                        <th style="width: 40%;">ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody id="tblChiTiet">
+                    <tr>
+                        <td colspan="4" style="color: #999; font-style: italic; padding: 20px;">Chưa thực hiện buổi nào</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        // 1. Hàm nhận và giải mã JSON từ URL Hash (#)
+        // 1. Hàm nhận diện dữ liệu và xử lý gọt dấu phẩy thừa của AppSheet
         function loadDataFromHash() {
             try {
                 const hash = window.location.hash.substring(1);
                 if (!hash) return;
                 
-                const jsonString = decodeURIComponent(hash);
+                let jsonString = decodeURIComponent(hash).trim();
+                
+                // Thuật toán gọt dấu phẩy thừa cuối mảng ChiTiet nhằm tránh crash JSON.parse
+                // Tìm kiếm đoạn kết thúc mảng "}, ]" hoặc "},]" để thay bằng "}]"
+                jsonString = jsonString.replace(/,\s*\]\s*\}/g, ']}');
+                
                 const data = JSON.parse(jsonString);
                 
                 document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
@@ -112,12 +122,16 @@
                 document.getElementById('txtSoBuoi').innerText = data.SoBuoi || '0';
                 document.getElementById('txtDaLam').innerText = data.DaLam || '0';
                 
+                // Đẩy thông tin vào thuộc tính dataset để các hàm chụp ảnh đặt tên file tự động
+                const wrapper = document.getElementById('wrapper-bill');
+                wrapper.dataset.sdt = data.SDT || '';
+                wrapper.dataset.hoivien = data.TenKhach || 'Khach_Hang';
+
                 const tbody = document.getElementById('tblChiTiet');
                 tbody.innerHTML = '';
                 
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
                     data.ChiTiet.forEach((item, index) => {
-                        // Loại bỏ dấu phẩy thừa ở cuối chuỗi Object nếu có do Appsheet tạo ra
                         if (item && item.Ngay) {
                             const row = `<tr>
                                 <td>${index + 1}</td>
@@ -132,7 +146,7 @@
                     tbody.innerHTML = `<tr><td colspan="4" style="color: #999; padding: 15px;">Chưa thực hiện buổi nào</td></tr>`;
                 }
             } catch (error) {
-                console.error("Lỗi parse JSON:", error);
+                console.error("Lỗi biên dịch cấu trúc JSON:", error);
             }
         }
 
@@ -143,37 +157,85 @@
             return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
         }
 
-        // 2. Tải ảnh Phiếu về máy
-        function downloadForm() {
-            const element = document.getElementById('print-area');
-            html2canvas(element, { scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Phieu_LT_${document.getElementById('txtTenKhach').innerText}.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-            });
-        }
-
-        // 3. Hàm copy link tổng quát
-        function copyCurrentLink(showAlert) {
+        function copyCurrentLink() {
             navigator.clipboard.writeText(window.location.href);
-            if (showAlert) {
-                alert("Đã copy đường dẫn phiếu liệu trình thành công!");
-            }
+            alert("Đã copy đường dẫn URL thành công!");
         }
 
-        // 4. Hàm điều hướng thông minh (Copy link trước -> Mở app sau)
-        function shareToPlatform(platform) {
-            // Tự động copy link vào bộ nhớ tạm trước
-            copyCurrentLink(false);
-            
-            if (platform === 'zalo') {
-                alert("Đã copy link! Trình duyệt sẽ mở Zalo, bạn chỉ cần nhấn gửi (Ctrl+V) cho khách.");
-                window.open('https://chat.zalo.me/', '_blank');
-            } else if (platform === 'messenger') {
-                alert("Đã copy link! Trình duyệt sẽ mở Messenger, bạn chỉ cần chọn khách hàng rồi dán (Ctrl+V) để gửi.");
-                window.open('https://www.messenger.com/', '_blank');
-            }
+        // --- Cụm hàm sao chép, tải và chia sẻ bằng hình ảnh kế thừa từ App Hụi ---
+        function copyBillAsImage(element) { 
+            const c = element.parentElement.querySelector('.bill-controls'); 
+            c.style.display = 'none'; 
+            html2canvas(element, { scale: 1.5, useCORS: true }).then(canvas => { 
+                canvas.toBlob(blob => { 
+                    try { 
+                        window.focus(); 
+                        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => alert('Đã copy ảnh bill vào bộ nhớ tạm!')).catch(err => { 
+                            console.error(err); 
+                            alert('Lỗi khi copy: ' + err); 
+                        }); 
+                    } catch (e) { 
+                        alert("Trình duyệt không hỗ trợ sao chép ảnh"); 
+                    } 
+                }); 
+                c.style.display = 'flex'; 
+            }).catch(err => { 
+                console.error('Lỗi html2canvas:', err); 
+                c.style.display = 'flex'; 
+            }); 
+        }
+
+        function downloadBillAsImage(element) { 
+            const sdt = element.dataset.sdt; 
+            const hoivien = element.dataset.hoivien; 
+            const filename = (sdt ? sdt : `Phieu_LT_${hoivien.replace(/\s+/g, '_')}`) + '.png'; 
+            const c = element.parentElement.querySelector('.bill-controls'); 
+            c.style.display = 'none'; 
+            html2canvas(element, { scale: 1.5, useCORS: true }).then(canvas => { 
+                const link = document.createElement('a'); 
+                link.download = filename; 
+                link.href = canvas.toDataURL("image/png"); 
+                link.click(); 
+                c.style.display = 'flex'; 
+            }).catch(err => { 
+                console.error(err); 
+                alert('Lỗi tạo ảnh.'); 
+                c.style.display = 'flex'; 
+            }); 
+        }
+        
+        async function shareBillAsImage(element) { 
+            const sdt = element.dataset.sdt; 
+            const hoivien = element.dataset.hoivien; 
+            const filename = (sdt ? sdt : `Phieu_LT_${hoivien}`) + '.png'; 
+            const shareBtn = element.parentElement.querySelector('.share-btn'); 
+            const originalText = shareBtn.textContent; 
+            shareBtn.textContent = "⏳ Đang xử lý..."; 
+            shareBtn.disabled = true; 
+            const c = element.parentElement.querySelector('.bill-controls'); 
+            c.style.display = 'none'; 
+            try { 
+                const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false }); 
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); 
+                const file = new File([blob], filename, { type: 'image/png' }); 
+                if (navigator.canShare && navigator.canShare({ files: [file] })) { 
+                    await navigator.share({ files: [file] }); 
+                } else { 
+                    alert('Hệ thống sẽ tự động TẢI PHIẾU về máy, bạn mở Messenger/Zalo chọn ảnh từ thư viện để gửi nhé!');
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                } 
+            } catch (error) { 
+                if(!error.message.includes('No Share API') && error.name !== 'AbortError') {
+                    alert("Thiết bị xử lý quá lâu. Bạn vui lòng dùng nút TẢI ẢNH PHIẾU nhé.");
+                }
+            } finally { 
+                c.style.display = 'flex'; 
+                shareBtn.textContent = originalText; 
+                shareBtn.disabled = false; 
+            } 
         }
 
         window.onload = loadDataFromHash;
