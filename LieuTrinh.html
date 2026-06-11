@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phiếu Liệu Trình</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; color: #333; }
+        .actions { max-width: 650px; margin: 0 auto 15px auto; display: flex; gap: 10px; justify-content: center; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; display: flex; align-items: center; gap: 5px; font-size: 14px; }
+        .btn-download { background-color: #2ecc71; }
+        .btn-copy { background-color: #3498db; }
+        .btn-share-zalo { background-color: #0068ff; }
+        .btn-share-mess { background-color: #a334fa; }
+        .btn:hover { opacity: 0.9; }
+        
+        /* Khung hóa đơn để chụp ảnh */
+        #print-area { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border: 1px solid #000; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+        
+        /* Thiết kế Table chuẩn theo hình 3 */
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .header-table td { padding: 6px; vertical-align: top; font-size: 14px; }
+        .spa-info { width: 40%; font-size: 14px; line-height: 1.5; }
+        .spa-name { font-weight: bold; font-size: 16px; color: #000; }
+        .info-title { background-color: #f2f2f2; font-weight: bold; text-align: center; border: 1px solid #000; }
+        .border-cell { border: 1px solid #000; padding: 6px 10px; }
+        
+        .detail-title { font-weight: bold; font-size: 15px; margin: 10px 0 5px 0; text-transform: uppercase; }
+        .main-table { width: 100%; border-collapse: collapse; }
+        .main-table th, .main-table td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 14px; }
+        .main-table th { background-color: #f2f2f2; }
+        .text-left { text-align: left !important; }
+    </style>
+</head>
+<body>
+
+    <div class="actions">
+        <button class="btn btn-download" onclick="downloadForm()">💾 Tải Ảnh Phiếu</button>
+        <button class="btn btn-copy" onclick="copyCurrentLink(true)">🔗 Chỉ Copy Link</button>
+        <button class="btn btn-share-zalo" onclick="shareToPlatform('zalo')">💬 Gửi qua Zalo</button>
+        <button class="btn btn-share-mess" onclick="shareToPlatform('messenger')">⚡ Gửi qua Messenger</button>
+    </div>
+
+    <div id="print-area">
+        <table class="header-table">
+            <tr>
+                <td class="spa-info">
+                    <div class="spa-name" id="txtTenSpa">＜Tên Spa＞</div>
+                    <div id="txtDiaChi">＜Địa Chỉ＞</div>
+                    <div id="txtSDT">＜SĐT＞</div>
+                </td>
+                <td>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td class="info-title" colspan="2">Thông Tin</td>
+                        </tr>
+                        <tr>
+                            <td class="border-cell" style="width: 30%; font-weight: bold;">Thông Tin</td>
+                            <td class="border-cell" id="txtTenKhach">＜Tên Khách＞</td>
+                        </tr>
+                        <tr>
+                            <td class="border-cell" style="font-weight: bold;">Liệu Trình:</td>
+                            <td class="border-cell" id="txtTenLieuTrinh">＜Tên Liệu Trình＞</td>
+                        </tr>
+                        <tr>
+                            <td class="border-cell" style="font-weight: bold;">Số Buổi:</td>
+                            <td class="border-cell" id="txtSoBuoi">＜SO BUOI＞</td>
+                        </tr>
+                        <tr>
+                            <td class="border-cell" style="font-weight: bold;">Đã Làm:</td>
+                            <td class="border-cell" id="txtDaLam">＜DA LAM＞</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <div class="detail-title">Chi Tiết</div>
+        <table class="main-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">STT</th>
+                    <th style="width: 25%;">Buổi</th>
+                    <th style="width: 25%;">Ngày</th>
+                    <th style="width: 40%;">ghi chú</th>
+                </tr>
+            </thead>
+            <tbody id="tblChiTiet">
+                <tr>
+                    <td colspan="4" style="color: #999; font-style: italic; padding: 20px;">Chưa có dữ liệu...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 1. Hàm nhận và giải mã JSON từ URL Hash (#)
+        function loadDataFromHash() {
+            try {
+                const hash = window.location.hash.substring(1);
+                if (!hash) return;
+                
+                const jsonString = decodeURIComponent(hash);
+                const data = JSON.parse(jsonString);
+                
+                document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
+                document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
+                document.getElementById('txtSDT').innerText = data.SDT || '';
+                document.getElementById('txtTenKhach').innerText = data.TenKhach || '';
+                document.getElementById('txtTenLieuTrinh').innerText = data.TenLieuTrinh || '';
+                document.getElementById('txtSoBuoi').innerText = data.SoBuoi || '0';
+                document.getElementById('txtDaLam').innerText = data.DaLam || '0';
+                
+                const tbody = document.getElementById('tblChiTiet');
+                tbody.innerHTML = '';
+                
+                if(data.ChiTiet && data.ChiTiet.length > 0) {
+                    data.ChiTiet.forEach((item, index) => {
+                        // Loại bỏ dấu phẩy thừa ở cuối chuỗi Object nếu có do Appsheet tạo ra
+                        if (item && item.Ngay) {
+                            const row = `<tr>
+                                <td>${index + 1}</td>
+                                <td>Buổi ${index + 1}</td>
+                                <td>${formatDate(item.Ngay)}</td>
+                                <td class="text-left">${item.GhiChu || ''}</td>
+                            </tr>`;
+                            tbody.insertAdjacentHTML('beforeend', row);
+                        }
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" style="color: #999; padding: 15px;">Chưa thực hiện buổi nào</td></tr>`;
+                }
+            } catch (error) {
+                console.error("Lỗi parse JSON:", error);
+            }
+        }
+
+        function formatDate(dateStr) {
+            if(!dateStr) return '';
+            const d = new Date(dateStr);
+            if(isNaN(d.getTime())) return dateStr;
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        }
+
+        // 2. Tải ảnh Phiếu về máy
+        function downloadForm() {
+            const element = document.getElementById('print-area');
+            html2canvas(element, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Phieu_LT_${document.getElementById('txtTenKhach').innerText}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        // 3. Hàm copy link tổng quát
+        function copyCurrentLink(showAlert) {
+            navigator.clipboard.writeText(window.location.href);
+            if (showAlert) {
+                alert("Đã copy đường dẫn phiếu liệu trình thành công!");
+            }
+        }
+
+        // 4. Hàm điều hướng thông minh (Copy link trước -> Mở app sau)
+        function shareToPlatform(platform) {
+            // Tự động copy link vào bộ nhớ tạm trước
+            copyCurrentLink(false);
+            
+            if (platform === 'zalo') {
+                alert("Đã copy link! Trình duyệt sẽ mở Zalo, bạn chỉ cần nhấn gửi (Ctrl+V) cho khách.");
+                window.open('https://chat.zalo.me/', '_blank');
+            } else if (platform === 'messenger') {
+                alert("Đã copy link! Trình duyệt sẽ mở Messenger, bạn chỉ cần chọn khách hàng rồi dán (Ctrl+V) để gửi.");
+                window.open('https://www.messenger.com/', '_blank');
+            }
+        }
+
+        window.onload = loadDataFromHash;
+    </script>
+</body>
+</html>
