@@ -185,11 +185,21 @@
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
                     data.ChiTiet.forEach((item) => {
                         if (item && item.TenDV) {
+                            // Sửa đổi logic nhận biết chuỗi phần trăm (%) để giữ nguyên bản hiển thị
+                            let displayDiscount = '-';
+                            if (item.GiamGiaDV && item.GiamGiaDV !== '0') {
+                                if (item.GiamGiaDV.toString().includes('%')) {
+                                    displayDiscount = item.GiamGiaDV;
+                                } else {
+                                    displayDiscount = formatNumber(item.GiamGiaDV);
+                                }
+                            }
+
                             const row = `<tr>
                                 <td class="text-left" style="font-weight: 500;">${item.TenDV}</td>
                                 <td>${item.SoLuong || 1}</td>
                                 <td class="text-right">${item.DonGia ? formatNumber(item.DonGia) : '0'}</td>
-                                <td class="text-right" style="color: #e74c3c;">${item.GiamGiaDV && item.GiamGiaDV !== '0' ? formatNumber(item.GiamGiaDV) : '-'}</td>
+                                <td class="text-right" style="color: #e74c3c; font-weight: 500;">${displayDiscount}</td>
                                 <td class="text-right" style="font-weight: 600;">${item.ThanhTien ? formatNumber(item.ThanhTien) : '0'}</td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
