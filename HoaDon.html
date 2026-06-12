@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hóa Đơn Thanh Toán</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* CSS dành cho chế độ hiển thị trên màn hình App để xem/chụp ảnh */
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #f0f4f4; color: #333; }
+        
+        .bill-controls { max-width: 1080px; margin: 0 auto 20px auto; display: flex; gap: 12px; justify-content: center; }
+        .btn { padding: 12px 24px; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; color: white; display: flex; align-items: center; gap: 6px; font-size: 15px; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-download { background-color: #2ecc71; }
+        .btn-copy { background-color: #3498db; }
+        .share-btn { background-color: #4db7b3; }
+        .btn-print { background-color: #7f8c8d; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        
+        /* Khung hóa đơn chuẩn 1080px khi xem trên App */
+        #print-area { width: 1080px; margin: 0 auto; background: white; padding: 50px; border-radius: 8px; border: 1px solid #cee5e4; box-shadow: 0 4px 15px rgba(0,0,0,0.05); box-sizing: border-box; }
+        
+        /* Header thông tin Spa */
+        .spa-header { text-align: center; margin-bottom: 30px; line-height: 1.6; }
+        .spa-name { font-weight: bold; font-size: 26px; color: #4db7b3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .spa-meta { font-size: 16px; color: #555; }
+        
+        /* Tiêu đề hóa đơn */
+        .bill-title { text-align: center; font-size: 30px; font-weight: bold; color: #333; margin: 25px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; }
+        .bill-code { text-align: center; font-size: 16px; font-style: italic; color: #666; margin-bottom: 35px; }
+        
+        /* Khung thông tin khách hàng */
+        .info-section { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 16px; }
+        .info-section td { padding: 6px 0; vertical-align: top; }
+        .info-label { width: 15%; color: #666; font-weight: 500; }
+        .info-value { font-weight: 600; color: #111; }
+        
+        /* Bảng chi tiết dịch vụ/sản phẩm mua */
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .invoice-table th { background-color: #4db7b3; color: white; font-weight: 600; padding: 12px 10px; font-size: 16px; text-transform: uppercase; border: 1px solid #4db7b3; }
+        .invoice-table td { padding: 14px 12px; font-size: 16px; color: #222; border-bottom: 1px solid #cee5e4; text-align: center; }
+        .invoice-table tbody tr:nth-child(even) { background-color: #f8fbfb; }
+        .text-left { text-align: left !important; }
+        .text-right { text-align: right !important; }
+        
+        /* Khu vực tính tiền tổng */
+        .summary-container { width: 45%; margin-left: auto; border-collapse: collapse; font-size: 16px; margin-bottom: 40px; }
+        .summary-container td { padding: 8px 0; }
+        .summary-label { text-align: left; color: #555; }
+        .summary-value { text-align: right; font-weight: 600; padding-right: 5px; }
+        .total-row { font-size: 19px; font-weight: bold; color: #4db7b3; border-top: 1px dashed #4db7b3; }
+        
+        /* Chân trang cảm ơn */
+        .footer-thanks { text-align: center; font-size: 16px; font-style: italic; color: #555; margin-top: 20px; border-top: 1px dashed #cee5e4; padding-top: 20px; }
+
+        /* ========================================================
+           CẤU HÌNH ĐẶC BIỆT KHI IN RA GIẤY (K58 / K80 BLUETOOTH)
+           Khi thực hiện lệnh In, toàn bộ các nút bấm và nền xám sẽ ẩn.
+           Kích thước tự động co về 100% của khổ giấy in Bill.
+        =========================================================== */
+        @media print {
+            body { background: white; margin: 0; padding: 0; color: #000; font-size: 12px; }
+            .bill-controls { display: none !important; } /* Ẩn nút điều khiển */
+            #print-area { width: 100% !important; max-width: 100% !important; padding: 10px; border: none !important; box-shadow: none !important; }
+            .spa-name { font-size: 16px; }
+            .spa-meta { font-size: 11px; }
+            .bill-title { font-size: 18px; margin: 15px 0 2px 0; }
+            .bill-code { font-size: 11px; margin-bottom: 15px; }
+            .info-section { font-size: 11px; margin-bottom: 15px; }
+            .info-label { width: 25%; }
+            .invoice-table th { font-size: 11px; padding: 6px 4px; background-color: transparent !important; color: #000 !important; border: 1px solid #000; }
+            .invoice-table td { font-size: 11px; padding: 6px 4px; border-bottom: 1px dashed #000; color: #000; }
+            .summary-container { width: 70%; font-size: 11px; margin-bottom: 20px; }
+            .total-row { font-size: 13px; color: #000 !important; border-top: 1px dashed #000; }
+            .footer-thanks { font-size: 11px; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bill-controls">
+        <button class="btn btn-download" onclick="downloadBill(document.getElementById('print-area'))">💾 Tải Ảnh Bill</button>
+        <button class="btn btn-copy" onclick="copyBill(document.getElementById('print-area'))">📷 Copy Ảnh</button>
+        <button class="btn share-btn" onclick="shareBill(document.getElementById('print-area'))">📤 Gửi Khách</button>
+        <button class="btn btn-print" onclick="window.print()">🖨️ In Máy Bluetooth</button>
+    </div>
+
+    <div id="print-area" data-mahd="" data-khach="">
+        
+        <div class="spa-header">
+            <div class="spa-name" id="txtTenSpa"></div>
+            <div class="spa-meta" id="txtDiaChi"></div>
+            <div class="spa-meta" style="font-weight: 500;" id="txtSDT"></div>
+        </div>
+
+        <div class="bill-title">Hóa Đơn Thanh Toán</div>
+        <div class="bill-code" id="txtMaHD"></div>
+
+        <table class="info-section">
+            <tr>
+                <td class="info-label">Khách hàng:</td>
+                <td class="info-value" id="txtTenKhach"></td>
+            </tr>
+            <tr>
+                <td class="info-label">Ngày tạo:</td>
+                <td class="info-value" id="txtNgayHD"></td>
+            </tr>
+            <tr>
+                <td class="info-label">Hình thức:</td>
+                <td class="info-value" id="txtHinhThuc"></td>
+            </tr>
+        </table>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%; text-align: left; padding-left: 10px;">Dịch vụ / Sản phẩm</th>
+                    <th style="width: 12%;">SL</th>
+                    <th style="width: 18%; text-align: right;">Đơn giá</th>
+                    <th style="width: 20%; text-align: right; padding-right: 10px;">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody id="tblChiTiet">
+                </tbody>
+        </table>
+
+        <table class="summary-container">
+            <tr>
+                <td class="summary-label">Tổng tiền dịch vụ:</td>
+                <td class="summary-value" id="txtTongTien">0</td>
+            </tr>
+            <tr>
+                <td class="summary-label">Giảm giá / Ưu đãi:</td>
+                <td class="summary-value" style="color: #e74c3c;" id="txtGiamGia">0</td>
+            </tr>
+            <tr class="total-row">
+                <td class="summary-label" style="font-weight: bold; padding-top: 8px;">Khách Thanh Toán:</td>
+                <td class="summary-value" style="font-weight: bold; padding-top: 8px;" id="txtThanhToan">0</td>
+            </tr>
+        </table>
+
+        <div class="footer-thanks">
+            Quý khách vui lòng kiểm tra lại hóa đơn.<br>
+            Trần Dung Beauty xin cảm ơn và hẹn gặp lại Quý khách!
+        </div>
+    </div>
+
+    <script>
+        function loadInvoiceData() {
+            try {
+                const hash = window.location.hash.substring(1);
+                if (!hash) return;
+                
+                let jsonString = decodeURIComponent(hash).trim();
+                
+                // Thuật toán dọn chuỗi mảng ChiTiet tự động
+                const chiTietStart = jsonString.indexOf('"ChiTiet": [');
+                if (chiTietStart !== -1) {
+                    const prefix = jsonString.substring(0, chiTietStart);
+                    let arrayPart = jsonString.substring(chiTietStart);
+                    const lastBracketIndex = arrayPart.lastIndexOf(']');
+                    if (lastBracketIndex !== -1) {
+                        let contentInside = arrayPart.substring(12, lastBracketIndex).trim();
+                        if (contentInside.endsWith(',')) {
+                            contentInside = contentInside.substring(0, contentInside.length - 1).trim();
+                        } else if (contentInside.replace(/\s/g, '').endsWith(',}')) {
+                            contentInside = contentInside.substring(/,\s*$/, '').trim();
+                        }
+                        contentInside = contentInside.replace(/,\s*,/g, ','); 
+                        const suffix = arrayPart.substring(lastBracketIndex);
+                        jsonString = prefix + '"ChiTiet": [' + contentInside + suffix;
+                    }
+                }
+                
+                const data = JSON.parse(jsonString);
+                
+                // Đổ dữ liệu text tổng quan
+                document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
+                document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
+                document.getElementById('txtSDT').innerText = data.SDT ? 'Hotline: ' + data.SDT : '';
+                document.getElementById('txtMaHD').innerText = data.MaHD ? 'Số HD: ' + data.MaHD : '';
+                document.getElementById('txtNgayHD').innerText = data.NgayHD || '';
+                document.getElementById('txtTenKhach').innerText = data.TenKhach || 'Khách vãng lai';
+                document.getElementById('txtHinhThuc').innerText = data.HinhThuc || 'Tiền mặt';
+                
+                document.getElementById('txtTongTien').innerText = data.TongTien || '0';
+                document.getElementById('txtGiamGia').innerText = data.GiamGia || '0';
+                document.getElementById('txtThanhToan').innerText = data.ThanhToan || '0';
+                
+                // Gán bộ đặt tên file ảnh
+                const element = document.getElementById('print-area');
+                element.dataset.mahd = data.MaHD || 'HD';
+                element.dataset.khach = data.TenKhach || 'Khach';
+
+                // Đổ bảng chi tiết dịch vụ
+                const tbody = document.getElementById('tblChiTiet');
+                tbody.innerHTML = '';
+                
+                if(data.ChiTiet && data.ChiTiet.length > 0) {
+                    data.ChiTiet.forEach((item) => {
+                        if (item && item.TenDV) {
+                            const row = `<tr>
+                                <td class="text-left" style="font-weight: 500;">${item.TenDV}</td>
+                                <td>${item.SoLuong || 1}</td>
+                                <td class="text-right">${item.DonGia || '0'}</td>
+                                <td class="text-right" style="font-weight: 600; padding-right: 10px;">${item.ThanhTien || '0'}</td>
+                            </tr>`;
+                            tbody.insertAdjacentHTML('beforeend', row);
+                        }
+                    });
+                }
+                
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="color: #999; padding: 20px; font-style: italic;">Không có thông tin dịch vụ</td></tr>`;
+                }
+            } catch (error) {
+                console.error("Lỗi parse JSON Hóa Đơn:", error);
+            }
+        }
+
+        // --- Hệ thống hàm xuất ảnh sắc nét và chia sẻ ---
+        function copyBill(element) { 
+            const c = document.querySelector('.bill-controls'); 
+            c.style.display = 'none'; 
+            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => { 
+                canvas.toBlob(blob => { 
+                    try { 
+                        window.focus(); 
+                        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => alert('Đã copy ảnh hóa đơn vào bộ nhớ tạm!')).catch(err => { 
+                            alert('Lỗi copy, thiết bị yêu cầu tải ảnh.'); 
+                        }); 
+                    } catch (e) { alert("Trình duyệt không hỗ trợ trực tiếp."); }
+                }); 
+                c.style.display = 'flex'; 
+            }).catch(err => { c.style.display = 'flex'; }); 
+        }
+
+        function downloadBill(element) { 
+            const mahd = element.dataset.mahd; 
+            const khach = element.dataset.khach; 
+            const filename = `HD_${mahd}_${khach.replace(/\s+/g, '_')}.png';` 
+            const c = document.querySelector('.bill-controls'); 
+            c.style.display = 'none'; 
+            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => { 
+                const link = document.createElement('a'); 
+                link.download = filename; 
+                link.href = canvas.toDataURL("image/png"); 
+                link.click(); 
+                c.style.display = 'flex'; 
+            }).catch(err => { c.style.display = 'flex'; }); 
+        }
+        
+        async function shareBill(element) { 
+            const mahd = element.dataset.mahd; 
+            const khach = element.dataset.khach; 
+            const filename = `HD_${mahd}.png`; 
+            const shareBtn = document.querySelector('.share-btn'); 
+            const originalText = shareBtn.textContent; 
+            shareBtn.textContent = "⏳ Đang xử lý..."; 
+            shareBtn.disabled = true; 
+            const c = document.querySelector('.bill-controls'); 
+            c.style.display = 'none'; 
+            try { 
+                const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false }); 
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); 
+                const file = new File([blob], filename, { type: 'image/png' }); 
+                if (navigator.canShare && navigator.canShare({ files: [file] })) { 
+                    await navigator.share({ files: [file] }); 
+                } else { 
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                } 
+            } catch (error) {
+                console.error(error);
+            } finally { 
+                c.style.display = 'flex'; 
+                shareBtn.textContent = originalText; 
+                shareBtn.disabled = false; 
+            } 
+        }
+
+        window.onload = loadInvoiceData;
+    </script>
+</body>
+</html>
