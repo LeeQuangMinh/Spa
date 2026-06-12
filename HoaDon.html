@@ -100,7 +100,6 @@
                 <td class="info-label">Ngày tạo:</td>
                 <td class="info-value" id="txtNgayHD"></td>
             </tr>
-
         </table>
 
         <table class="invoice-table">
@@ -122,7 +121,6 @@
                 <td class="summary-label">Tổng tiền dịch vụ:</td>
                 <td class="summary-value" id="txtTongTien">0</td>
             </tr>
-
             <tr class="total-row">
                 <td class="summary-label" style="font-weight: bold; padding-top: 8px;">Khách Thanh Toán:</td>
                 <td class="summary-value" style="font-weight: bold; padding-top: 8px;" id="txtThanhToan">0</td>
@@ -154,7 +152,7 @@
                         if (contentInside.endsWith(',')) {
                             contentInside = contentInside.substring(0, contentInside.length - 1).trim();
                         } else if (contentInside.replace(/\s/g, '').endsWith(',}')) {
-                            contentInside = contentInside.replace(/,\s*$/, '').trim();
+                            contentInside = contentInside.substring(/,\s*$/, '').trim();
                         }
                         contentInside = contentInside.replace(/,\s*,/g, ','); 
                         const suffix = arrayPart.substring(lastBracketIndex);
@@ -164,37 +162,35 @@
                 
                 const data = JSON.parse(jsonString);
                 
+                // Điền thông tin lên giao diện
                 document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
                 document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
                 document.getElementById('txtSDT').innerText = data.SDT ? 'Hotline: ' + data.SDT : '';
                 document.getElementById('txtMaHD').innerText = data.MaHD ? 'Số HD: ' + data.MaHD : '';
                 document.getElementById('txtNgayHD').innerText = data.NgayHD || '';
                 document.getElementById('txtTenKhach').innerText = data.TenKhach || 'Khách vãng lai';
-                document.getElementById('txtHinhThuc').innerText = data.HinhThuc || 'Tiền mặt';
                 
-                document.getElementById('txtTongTien').innerText = data.TongTien || '0';
-                document.getElementById('txtGiamGia').innerText = data.GiamGia || '0';
-                document.getElementById('txtThanhToan').innerText = data.ThanhToan || '0';
+                // Áp dụng hàm định dạng số phân cách
+                document.getElementById('txtTongTien').innerText = data.TongTien ? formatNumber(data.TongTien) : '0';
+                document.getElementById('txtThanhToan').innerText = data.ThanhToan ? formatNumber(data.ThanhToan) : '0';
                 
                 const element = document.getElementById('print-area');
                 element.dataset.mahd = data.MaHD || 'HD';
                 element.dataset.khach = data.TenKhach || 'Khach';
 
+                // Đổ bảng chi tiết dịch vụ
                 const tbody = document.getElementById('tblChiTiet');
                 tbody.innerHTML = '';
                 
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
                     data.ChiTiet.forEach((item) => {
                         if (item && item.TenDV) {
-                            // Nếu giảm giá của dịch vụ bằng 0 hoặc trống thì hiển thị dấu gạch ngang '-' cho thoáng mắt
-                            const discountValue = (item.GiamGiaDV && item.GiamGiaDV !== '0') ? item.GiamGiaDV : '-';
-                            
                             const row = `<tr>
                                 <td class="text-left" style="font-weight: 500;">${item.TenDV}</td>
                                 <td>${item.SoLuong || 1}</td>
-                                <td class="text-right">${item.DonGia || '0'}</td>
-                                <td class="text-right" style="color: #e74c3c;">${discountValue}</td>
-                                <td class="text-right" style="font-weight: 600;">${item.ThanhTien || '0'}</td>
+                                <td class="text-right">${item.DonGia ? formatNumber(item.DonGia) : '0'}</td>
+                                <td class="text-right" style="color: #e74c3c;">${item.GiamGiaDV && item.GiamGiaDV !== '0' ? formatNumber(item.GiamGiaDV) : '-'}</td>
+                                <td class="text-right" style="font-weight: 600;">${item.ThanhTien ? formatNumber(item.ThanhTien) : '0'}</td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         }
@@ -205,11 +201,19 @@
                     tbody.innerHTML = `<tr><td colspan="5" style="color: #999; padding: 20px; font-style: italic;">Không có thông tin dịch vụ</td></tr>`;
                 }
             } catch (error) {
-                console.error("Lỗi parse JSON Hóa Đơn:", error);
+                console.error("Lỗi biên dịch cấu trúc JSON:", error);
             }
         }
 
-        // --- Hệ thống hàm xuất ảnh sắc nét và chia sẻ từ app gốc ---
+        // Hàm tự động thêm dấu phân cách hàng nghìn (159000 -> 159,000)
+        function formatNumber(num) {
+            if (!num) return '0';
+            let cleanNum = num.toString().replace(/[^0-9]/g, '');
+            if (!cleanNum) return '0';
+            return Number(cleanNum).toLocaleString('en-US');
+        }
+
+        // --- Hệ thống hàm xuất ảnh sắc nét từ app gốc ---
         function copyBill(element) { 
             const c = document.querySelector('.bill-controls'); 
             c.style.display = 'none'; 
@@ -217,10 +221,8 @@
                 canvas.toBlob(blob => { 
                     try { 
                         window.focus(); 
-                        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => alert('Đã copy ảnh hóa đơn vào bộ nhớ tạm!')).catch(err => { 
-                            alert('Lỗi copy, thiết bị yêu cầu tải ảnh.'); 
-                        }); 
-                    } catch (e) { alert("Trình duyệt không hỗ trợ trực tiếp."); }
+                        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => alert('Đã copy ảnh hóa đơn vào bộ nhớ tạm!')); 
+                    } catch (e) { console.error(e); }
                 }); 
                 c.style.display = 'flex'; 
             }).catch(err => { c.style.display = 'flex'; }); 
@@ -262,9 +264,7 @@
                     link.href = URL.createObjectURL(blob);
                     link.click();
                 } 
-            } catch (error) {
-                console.error(error);
-            } finally { 
+            } catch (error) { console.error(error); } finally { 
                 c.style.display = 'flex'; 
                 shareBtn.textContent = originalText; 
                 shareBtn.disabled = false; 
