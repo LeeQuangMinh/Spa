@@ -46,19 +46,19 @@
         /* Phần chứa Summary (phải) và QR (trái) xếp ngang trên app */
         .bill-footer-container { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px; }
         
-        /* Khung thông tin QR nằm bên trái Summary */
-        .qr-bank-container { width: 52%; display: flex; gap: 20px; align-items: center; border: 1px dashed #4db7b3; padding: 15px; border-radius: 6px; background: #fafcfc; box-sizing: border-box; }
-        #qrcode { width: 150px; height: 150px; background-color: #fff; display: flex; align-items: center; justify-content: center; }
-        #qrcode img { width: 100%; height: 100%; }
-        .bank-details { font-size: 15px; line-height: 1.6; color: #444; }
-        .qr-title { font-weight: bold; color: #4db7b3; text-transform: uppercase; margin-bottom: 5px; font-size: 14px; letter-spacing: 0.5px; }
+        /* Khung chứa mã QR bự và thông tin Bank xếp dọc gọn gàng */
+        .qr-bank-container { width: 45%; display: flex; flex-direction: column; align-items: center; border: 1px dashed #4db7b3; padding: 20px; border-radius: 8px; background: #fafcfc; box-sizing: border-box; text-align: center; }
+        #qrcode { width: 240px; height: 240px; background-color: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; }
+        #qrcode img, #qrcode canvas { width: 100% !important; height: 100% !important; }
+        .bank-details { font-size: 16px; line-height: 1.6; color: #444; width: 100%; }
+        .qr-title { font-weight: bold; color: #4db7b3; text-transform: uppercase; margin-bottom: 8px; font-size: 15px; letter-spacing: 0.5px; }
         
         /* Khu vực tính tiền tổng tổng cộng nằm bên phải */
-        .summary-container { width: 43%; border-collapse: collapse; font-size: 16px; box-sizing: border-box; }
-        .summary-container td { padding: 8px 0; }
+        .summary-container { width: 50%; border-collapse: collapse; font-size: 16px; box-sizing: border-box; }
+        .summary-container td { padding: 10px 0; }
         .summary-label { text-align: left; color: #555; }
         .summary-value { text-align: right; font-weight: 600; padding-right: 5px; }
-        .total-row { font-size: 19px; font-weight: bold; color: #4db7b3; border-top: 1px dashed #4db7b3; }
+        .total-row { font-size: 21px; font-weight: bold; color: #4db7b3; border-top: 1px dashed #4db7b3; }
         
         /* Chân trang cảm ơn */
         .footer-thanks { text-align: center; font-size: 16px; font-style: italic; color: #555; margin-top: 40px; border-top: 1px dashed #cee5e4; padding-top: 20px; width: 100%; order: 3; }
@@ -82,9 +82,9 @@
             .summary-container { width: 100% !important; order: 1 !important; font-size: 11px; margin-bottom: 15px; }
             .total-row { font-size: 13px; color: #000 !important; border-top: 1px dashed #000; }
             
-            .qr-bank-container { width: 100% !important; order: 2 !important; border: none; padding: 10px 0; background: transparent; display: flex !important; flex-direction: row !important; gap: 15px; align-items: center; border-top: 1px dashed #000; }
-            #qrcode { width: 100px !important; height: 100px !important; }
-            .bank-details { font-size: 11px; line-height: 1.5; text-align: left; }
+            .qr-bank-container { width: 100% !important; order: 2 !important; border: none; padding: 15px 0; background: transparent; display: flex !important; flex-direction: column !important; align-items: center; border-top: 1px dashed #000; }
+            #qrcode { width: 140px !important; height: 140px !important; padding: 5px; margin-bottom: 8px; }
+            .bank-details { font-size: 11px; line-height: 1.5; text-align: center; }
             .footer-thanks { font-size: 11px; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; order: 3 !important; display: block; }
         }
     </style>
@@ -139,7 +139,7 @@
                 <div id="qrcode"></div>
                 <div class="bank-details">
                     <div class="qr-title">Chuyển khoản qua QR</div>
-                    <div>Ngân hàng: <strong id="lblTenNganHang">BIDV</strong></div>
+                    <div>Ngân hàng: <strong id="lblTenNganHang"></strong></div>
                     <div>Số TK: <strong id="lblSTK"></strong></div>
                     <div>Chủ TK: <strong id="lblChuTK"></strong></div>
                 </div>
@@ -208,32 +208,33 @@
                 element.dataset.mahd = data.MaHD || 'HD';
                 element.dataset.khach = data.TenKhach || 'Khach';
 
-                // --- ĐÓN NHẬN DỮ LIỆU NGÂN HÀNG ĐỘNG TỪ APPSHEET ĐỂ VẼ QR ---
+                // ĐÓN NHẬN DỮ LIỆU NGÂN HÀNG ĐỘNG
                 const rawAmount = data.TongThu ? data.TongThu.toString().replace(/[^0-9]/g, '') : '0';
-                const bankBin = data.BankBIN || "970418"; // Nhận mã BIN động (Mặc định nếu trống là BIDV)
-                const bankName = data.BankName || "BIDV"; // Nhận Tên viết tắt Ngân hàng động
-                const stk = data.STK || "14110000427253"; // Nhận STK động
-                const chuTK = (data.ChuTK || "TRAN THI KIM DUNG").toUpperCase(); // Nhận tên chủ TK động
+                const bankBin = data.BankBIN || "970418"; 
+                const bankName = data.BankName || "BIDV"; 
+                const stk = data.STK || "14110000427253"; 
+                const chuTK = (data.ChuTK || "TRAN THI KIM DUNG").toUpperCase(); 
                 const noiDungCK = "Thanh toan hoa don " + (data.MaHD || '');
 
-                // Hiển thị chữ lên Bill phần thông tin TK
                 document.getElementById('lblTenNganHang').innerText = bankName;
                 document.getElementById('lblSTK').innerText = stk;
                 document.getElementById('lblChuTK').innerText = chuTK;
 
-                // Hàm tạo chuỗi mã hóa VietQR chuẩn EMVCo quốc tế bằng dữ liệu động
+                // Hàm tạo chuỗi mã hóa VietQR chuẩn EMVCo quốc tế
                 const qrContent = generateVietQRString(bankBin, stk, rawAmount, noiDungCK, chuTK);
 
-                // Tiến hành tự vẽ QR Code offline tại chỗ vào thẻ div #qrcode
+                // SỬ DỤNG SETTIMEOUT ĐỂ SỬA LỖI MÃ QR TRẮNG
                 document.getElementById('qrcode').innerHTML = ""; 
-                new QRCode(document.getElementById('qrcode'), {
-                    text: qrContent,
-                    width: 150,
-                    height: 150,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M
-                });
+                setTimeout(function() {
+                    new QRCode(document.getElementById('qrcode'), {
+                        text: qrContent,
+                        width: 240, // Tăng kích thước bự lên 240px quét siêu nhạy
+                        height: 240,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+                }, 150);
 
                 // Đổ bảng chi tiết dịch vụ
                 const tbody = document.getElementById('tblChiTiet');
@@ -271,7 +272,6 @@
             }
         }
 
-        // Thuật toán dựng chuỗi EMVCo chuẩn Napas247 cho VietQR đọc không cần internet
         function generateVietQRString(bin, stk, amount, desc, name) {
             function f(id, val) { return id + String(val.length).padStart(2, '0') + val; }
             const consumerInfo = f('00', 'A000000727') + f('01', f('00', bin) + f('01', stk)) + f('02', '02');
@@ -280,7 +280,6 @@
             qr += f('58', 'VN') + f('59', name) + f('60', 'Hanoi');
             if (desc) qr += f('62', f('08', desc));
             
-            // Tính chuỗi kiểm tra CRC16 chuẩn quốc tế
             let crc = 0xFFFF;
             const str = qr + '6304';
             for (let c = 0; c < str.length; c++) {
