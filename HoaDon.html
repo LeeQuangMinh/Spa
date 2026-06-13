@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hóa Đơn Thanh Toán</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #f0f4f4; color: #333; }
         
@@ -48,7 +49,7 @@
         /* Khung chứa mã QR bự và thông tin Bank xếp dọc gọn gàng */
         .qr-bank-container { width: 45%; display: flex; flex-direction: column; align-items: center; border: 1px dashed #4db7b3; padding: 20px; border-radius: 8px; background: #fafcfc; box-sizing: border-box; text-align: center; }
         #qrcode { width: 280px; height: 280px; background-color: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; }
-        #qrcode table { border-collapse: collapse !important; margin: 0 auto !important; border: none !important; }
+        #qrcode canvas, #qrcode img { width: 100% !important; height: 100% !important; display: block; }
         .bank-details { font-size: 16px; line-height: 1.6; color: #444; width: 100%; }
         .qr-title { font-weight: bold; color: #4db7b3; text-transform: uppercase; margin-bottom: 8px; font-size: 15px; letter-spacing: 0.5px; }
         
@@ -132,9 +133,9 @@
                 <div id="qrcode"></div>
                 <div class="bank-details">
                     <div class="qr-title">Chuyển khoản qua QR</div>
-                    <div>Ngân hàng: <strong>BIDV</strong></div>
-                    <div>Số TK: <strong>14110000427253</strong></div>
-                    <div>Chủ TK: <strong>TRAN THI KIM DUNG</strong></div>
+                    <div>Ngân hàng: <strong id="lblTenNganHang">-</strong></div>
+                    <div>Số TK: <strong id="lblSTK">-</strong></div>
+                    <div>Chủ TK: <strong id="lblChuTK">-</strong></div>
                 </div>
             </div>
             
@@ -157,33 +158,69 @@
     </div>
 
     <script>
-        const VietQRUtil = {
-            clean: (s) => s ? s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^a-zA-Z0-9 ]/g, '').trim().toUpperCase() : "",
-            crc16: (data) => {
+        const VietQR = {
+            cleanText: function(str) {
+                if (!str) return "";
+                return str.toString().normalize('NFD')
+                          .replace(/[\u0300-\u036f]/g, '')
+                          .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                          .replace(/[^a-zA-Z0-9 ]/g, '')  
+                          .trim();
+            },
+            crc16: function(data) {
                 let crc = 0xFFFF;
                 for (let i = 0; i < data.length; i++) {
                     crc ^= data.charCodeAt(i) << 8;
                     for (let j = 0; j < 8; j++) {
-                        crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+                        if ((crc & 0x8000) != 0) crc = (crc << 1) ^ 0x1021;
+                        else crc = crc << 1;
                     }
+                    crc = crc & 0xFFFF;
                 }
-                return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+                let hex = crc.toString(16).toUpperCase();
+                return "0000".substring(0, 4 - hex.length) + hex;
             },
-            generateStatic: (bin, stk, name) => {
-                const f = (id, v) => id + String(v).length.toString().padStart(2, '0') + v;
-                const m = f("00", "A000000727") + f("01", f("00", bin) + f("01", stk)) + f("02", "QRIBFTTA");
-                // Khởi tạo chuỗi tĩnh chuẩn ISO, bỏ trống hoàn toàn số tiền (54) và lời nhắn (62) để khách tự điền
-                let s = f("00", "01") + f("01", "11") + f("38", m) + f("53", "704") + f("58", "VN") + f("59", VietQRUtil.clean(name)) + f("60", "HANOI");
-                return s + "6304" + VietQRUtil.crc16(s + "6304");
+            generatePayload: function(bankBin, bankNumber, amount, name) {
+                const field = (id, value) => {
+                    const valStr = String(value);
+                    const len = valStr.length;
+                    return id + (len < 10 ? "0" + len : len) + valStr;
+                };
+                const cleanBin = String(bankBin).replace(/\D/g, ''); 
+                const cleanAccount = String(bankNumber).replace(/[^a-zA-Z0-9]/g, ''); 
+                
+                if (cleanBin.length < 4 || cleanAccount.length < 1) return null;
+
+                const merchantInfo = field("00", "A000000727") + 
+                                     field("01", field("00", cleanBin) + field("01", cleanAccount)) + 
+                                     field("02", "QRIBFTTA");
+
+                let qrStr = field("00", "01") + field("01", "12") + field("38", merchantInfo) + field("53", "704"); 
+                
+                // ĐƯA SỐ TIỀN ĐỘNG VÀO MÃ QR NẾU CÓ DỮ LIỆU TỪ APPSHEET
+                if (amount) {
+                    const cleanAmount = String(amount).replace(/\D/g, '');
+                    if (parseInt(cleanAmount) > 0) qrStr += field("54", cleanAmount);
+                }
+                
+                qrStr += field("58", "VN"); 
+                if (name) {
+                    qrStr += field("59", this.cleanText(name));
+                }
+                qrStr += field("60", "HANOI");
+                qrStr += "6304"; 
+                qrStr += this.crc16(qrStr);
+                return qrStr;
             }
         };
 
         function loadInvoiceData() {
             try {
-                const hash = window.location.hash.substring(1);
-                if (!hash) return;
-                let jsonString = decodeURIComponent(hash).trim();
+                const encodedData = window.location.hash.substring(1);
+                if (!encodedData) return;
+                let jsonString = decodeURIComponent(encodedData).trim();
                 
+                // Chuẩn hóa chuỗi JSON mảng ChiTiet lồng nhau từ AppSheet
                 const chiTietStart = jsonString.indexOf('"ChiTiet": [');
                 if (chiTietStart !== -1) {
                     const prefix = jsonString.substring(0, chiTietStart);
@@ -199,7 +236,7 @@
                 
                 const data = JSON.parse(jsonString);
                 
-                // Đổ text dữ liệu lên hóa đơn (Cam kết lên đầy đủ, không bao giờ lỗi đứng code)
+                // Đổ văn bản thông tin cơ bản lên bill
                 document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
                 document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
                 document.getElementById('txtSDT').innerText = data.SDT ? 'Hotline: ' + data.SDT : '';
@@ -210,28 +247,46 @@
                 document.getElementById('txtTongTien').innerText = data.TongTien ? formatNumber(data.TongTien) : '0';
                 document.getElementById('txtThanhToan').innerText = data.ThanhToan ? formatNumber(data.ThanhToan) : '0';
                 
+                // Đổ text hiển thị khu vực Bank động dưới chân QR
+                document.getElementById('lblTenNganHang').innerText = data.TenNganHang || 'Ngân hàng';
+                document.getElementById('lblSTK').innerText = data.STK || '';
+                document.getElementById('lblChuTK').innerText = data.ChuTK ? data.ChuTK.toUpperCase() : '';
+
                 const element = document.getElementById('print-area');
                 element.dataset.mahd = data.MaHD || 'HD';
                 element.dataset.khach = data.TenKhach || 'Khach';
 
-                // --- TẠO MÃ QR CODE TĨNH CHẠY LOCAL OFFLINE TUYỆT ĐỐI ---
-                const bankBin = "970418"; // Mã BIN ngân hàng BIDV
-                const stk = "14110000427253"; // Số tài khoản BIDV cố định
-                const name = "TRAN THI KIM DUNG"; // Tên chủ tài khoản
-
-                const qrPayload = VietQRUtil.generateStatic(bankBin, stk, name);
+                // --- KHỞI TẠO VÀ NẠP BIẾN ĐỘNG VÀO MÃ QR CHUẨN VIETQR ---
+                const bankBin = data.MaBIN || '';       // Nhận động mã BIN từ AppSheet
+                const bankNumber = data.STK || '';     // Nhận động Số tài khoản từ AppSheet
+                const rawAmount = data.ThanhToan || '0'; // Nhận động Số tiền từ AppSheet đưa vào QR
+                const nameOwner = data.ChuTK || '';     // Nhận động Tên chủ TK từ AppSheet
                 
+                // Làm sạch tiền để nạp vào QR payload
+                const cleanAmountNum = rawAmount.toString().replace(/[^0-9]/g, '');
+
                 document.getElementById('qrcode').innerHTML = "";
-                const targetSize = window.matchMedia("print").matches ? 160 : 280;
                 
-                // Khởi chạy thư viện tạo mã độc lập vẽ trực tiếp lên khung hóa đơn
-                new QRCodeBuilder(document.getElementById("qrcode"), {
-                    text: qrPayload,
-                    width: targetSize,
-                    height: targetSize
-                });
+                if (bankBin && bankNumber) {
+                    // Tạo chuỗi VietQR chứa tiền động từ AppSheet
+                    const qrPayload = VietQR.generatePayload(bankBin, bankNumber, cleanAmountNum, nameOwner);
+                    
+                    if (qrPayload) {
+                        const targetSize = window.matchMedia("print").matches ? 160 : 280;
+                        new QRCode(document.getElementById("qrcode"), {
+                            text: qrPayload,
+                            width: targetSize,
+                            height: targetSize,
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    } else {
+                        document.getElementById('qrcode').innerHTML = "<div style='color:red;font-size:14px;padding:20px;'>Lỗi dữ liệu QR</div>";
+                    }
+                } else {
+                    document.getElementById('qrcode').innerHTML = "<div style='color:#777;font-size:13px;padding:30px;font-style:italic;'>Chưa cấu hình tài khoản nhận tiền</div>";
+                }
 
-                // Đổ danh sách mảng dịch vụ
+                // Đổ danh sách bảng dịch vụ
                 const tbody = document.getElementById('tblChiTiet');
                 tbody.innerHTML = '';
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
@@ -246,7 +301,7 @@
                                 <td>${item.SoLuong || 1}</td>
                                 <td class="text-right">${item.DonGia ? formatNumber(item.DonGia) : '0'}</td>
                                 <td class="text-right" style="color: #e74c3c; font-weight: 500;">${displayDiscount}</td>
-                                <td class="text-right" style="font-weight: 600;">${item.ThanhTien ? formatNumber(item.ThanhTien) : '0'}</td>
+                                <td class="text-right" style="font-weight: 600;">${item.ThanhToanDV ? formatNumber(item.ThanhToanDV) : (item.ThanhToan ? formatNumber(item.ThanhToan) : '0')}</td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         }
@@ -256,7 +311,7 @@
                     tbody.innerHTML = `<tr><td colspan="5" style="color: #999; padding: 20px; font-style: italic;">Không có thông tin dịch vụ</td></tr>`;
                 }
             } catch (error) {
-                console.error("Lỗi biên dịch:", error);
+                console.error("Lỗi biên dịch cấu trúc:", error);
             }
         }
 
@@ -266,6 +321,7 @@
             return cleanNum ? Number(cleanNum).toLocaleString('en-US') : '0';
         }
 
+        // --- Các hàm chụp xuất ảnh giữ nguyên ổn định ---
         function copyBill(element) { 
             const c = document.querySelector('.bill-controls'); c.style.display = 'none'; 
             html2canvas(element, { scale: 2, useCORS: true }).then(canvas => { 
@@ -291,10 +347,8 @@
                 else { const link = document.createElement('a'); link.download = 'HD.png'; link.href = URL.createObjectURL(blob); link.click(); }
             } catch (e) {} finally { c.style.display = 'flex'; shareBtn.textContent = originalText; shareBtn.disabled = false; } 
         }
-    </script>
 
-    <script>
-        !function(){function t(t){this.mode=4,this.data=t,this.parsedData=[];for(var e=[],r=0,o=t.length;o<r;r++){let i=t.charCodeAt(r);i>65536?(e[0]=240|i>>>18&7,e[1]=128|i>>>12&63,e[2]=128|i>>>6&63,e[3]=128|63&i):i>2048?(e[0]=224|i>>>12&15,e[1]=128|i>>>12&63,e[2]=128|63&i):i>128?(e[0]=192|i>>>6&31,e[1]=128|63&i):e[0]=i,this.parsedData=this.parsedData.concat(e)}this.parsedData.length!=this.data.length&&(this.parsedData.push(0),this.parsedData.push(0))}function e(t,e){this.typeNumber=t,this.errorCorrectLevel=e,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}e.prototype={addData:function(e){var r=new t(e);this.dataList.push(r),this.dataCache=null},isDark:function(t,e){if(t<0||this.moduleCount<=t||e<0||this.moduleCount<=e)return!1;return this.modules[t][e]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(t,r){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var o=0;o<this.moduleCount;o++){this.modules[o]=new Array(this.moduleCount);for(var i=0;i<this.moduleCount;i++)this.modules[o][i]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(t,r),this.typeNumber>6&&this.setupTypeNumber(t),null==this.dataCache&&(this.dataCache=e.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,r)},setupTimingPattern:function(){for(var t=8;t<this.moduleCount-8;t++)null==this.modules[t][6]&&(this.modules[t][6]=t%2==0);for(var e=8;e<this.moduleCount-8;e++)null==this.modules[6][e]&&(this.modules[6][e]=e%2==0)},setupPositionAdjustPattern:function(){for(var t=i.getPatternPosition(this.typeNumber),e=0;e<t.length;e++)for(var r=0;r<t.length;r++){var o=t[e],n=t[r];if(null==this.modules[o][n]){for(var f=-2;f<=2;f++)for(var a=-2;a<=2;a++)this.modules[o+f][n+a]=f==-2||f==2||a==-2||a==2||f==0&&a==0}}},setupPositionProbePattern:function(t,e){for(var r=-1;r<=7;r++)if(!(t+r<-1||this.moduleCount<=t+r))for(var o=-1;o<=7;o++)e+o<-1||this.moduleCount<=e+o||(this.modules[t+r][e+o]=r>=0&&r<=6&&(r==0||r==6)||o>=0&&o<=6&&(o==0||o==6)||r>=2&&r<=4&&o>=2&&o<=4)},getBestMaskPattern:function(){for(var t=0,e=0,r=0;r<8;r++){this.makeImpl(!0,r);var o=i.getLostPoint(this);(r==0||t>o)&&(t=o,e=r)}return e},setupTypeInfo:function(t,e){for(var r=this.errorCorrectLevel<<3|e,o=i.getBCHTypeInfo(r),n=0;n<15;n++){var f=!t&&((o>>>n)&1)==1;n<6?this.modules[n][8]=f:n<8?this.modules[n+1][8]=f:this.modules[this.moduleCount-15+n][8]=f}for(var a=0;a<15;a++){var f=!t&&((o>>>a)&1)==1;a<8?this.modules[8][this.moduleCount-a-1]=f:a<9?this.modules[8][15-a-1+1]=f:this.modules[8][15-a-1]=f}this.modules[this.moduleCount-8][8]=!t},setupTypeNumber:function(t){for(var e=i.getBCHTypeNumber(this.typeNumber),r=0;r<18;r++){var o=!t&&((e>>>r)&1)==1;this.modules[Math.floor(r/3)][r%3+this.moduleCount-8-3]=o}for(var n=0;n<18;n++){var o=!t&&((e>>>n)&1)==1;this.modules[n%3+this.moduleCount-8-3][Math.floor(n/3)]=o}},mapData:function(t,e){for(var r=-1,o=this.moduleCount-1,i=7,n=0,f=this.moduleCount-1;f>0;f-=2)for(f==6&&f--;;){for(var a=0;a<2;a++)if(null==this.modules[o][f-a]){var u=!1;n<t.length&&(u=((t[n]>>>i)&1)==1);var c=i.getMask(e,o,f-a);c&&(u=!u),this.modules[o][f-a]=u,i--,i==-1&&(n++,i=7)}if(o+=r,o<0||this.moduleCount<=o){o-=r,r=-r;break}}}},e.createData=function(t,r,o){for(var n=f.getRSBlocks(t,r),a=new u,c=0;c<o.length;c++){var s=o[c];a.put(4,4),a.put(s.getLength(),i.getLengthInBits(4,t)),a.setItem(s)}for(var l=0,c=0;c<n.length;c++)l+=n[c].dataCount;if(a.getLengthInBits()>8*l)throw new Error("SizeOverflow");for(a.getLengthInBits()+4<=8*l&&a.put(0,4);a.getLengthInBits()%8!=0;)a.putBit(!1);for(;;){if(a.getLengthInBits()&&a.getLengthInBits()>=8*l)break;if(a.put(236,8),a.getLengthInBits()>=8*l)break;a.put(17,8)}return e.createBytes(a,n)},e.createBytes=function(t,e){for(var r=0,o=0,n=0,f=new Array(e.length),a=new Array(e.length),u=0;u<e.length;u++){var c=e[u].dataCount,s=e[u].totalCount-c;o=Math.max(o,c),n=Math.max(n,s),f[u]=new Array(c);for(var l=0;l<f[u].length;l++)f[u][l]=255&t.buffer[l+r];r+=c;var h=i.getErrorCorrectPolynomial(s),p=new m(f[u],h.getLength()-1),g=p.mod(h);a[u]=new Array(h.getLength()-1);for(var l=0;l<a[u].length;l++){var d=l+g.getLength()-a[u].length;a[u][l]=d>=0?g.get(d):0}}for(var v=0,l=0;l<e.length;l++)v+=e[l].totalCount;for(var y=new Array(v),M=0,l=0;l<o;l++)for(var u=0;u<e.length;u++)l<f[u].length&&(y[M++]=f[u][l]);for(var l=0;l<n;l++)for(var u=0;u<e.length;u++)l<a[u].length&&(y[M++]=a[u][l]);return y};for(var n=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12]],f={},a=[[21597,0],[20773,1],[24188,2],[23377,3],[17913,4],[16590,5],[20375,6],[19104,7],[30660,8],[29427,9],[32170,10],[30877,11]],u=function(){this.buffer=[],this.length=0},c=[6,18,24,30,36,42,0,6,22,38,54,70,86,0,6,26,46,66,86,106,0,6,30,54,78,102,126];i.getBCHTypeInfo=function(t){for(var e=0;e<a.length;e++)if(a[e][1]==t)return a[e][0];return 0},i.getBCHTypeNumber=function(t){for(var e=t<<12;i.getBCHDigit(e)-i.getBCHDigit(7973)>=0;)e^=7973<<i.getBCHDigit(e)-i.getBCHDigit(7973);return t<<12|e},i.getBCHDigit=function(t){for(var e=0;t!=0;)e++,t>>>=1;return e},i.getPatternPosition=function(t){return c.slice(7*(t-1),7*t)},i.getMask=function(t,e,r){switch(t){case 0:return(e+r)%2==0;case 1:return e%2==0;case 2:return r%3==0;case 3:return(e+r)%3==0;case 4:return(Math.floor(e/2)+Math.floor(r/3))%2==0;case 5:return e*r%2+e*r%3==0;case 6:return(e*r%2+e*r%3)%2==0;case 7:return(e*r%3+(e+r)%2)%2==0;default:throw new Error("Pattern:"+t)}},i.getErrorCorrectPolynomial=function(t){for(var e=new m([1],0),r=0;r<t;r++)e=e.multiply(new m([1,s.gexp(r)],0));return e},i.getLengthInBits=function(t,e){if(e>=1&&e<10)switch(t){case 4:return 8;default:return 8}else switch(t){case 4:return 16;default:return 10}},i.getLostPoint=function(t){for(var e=t.getModuleCount(),r=0,o=0;o<e;o++)for(var i=0;i<e;i++){for(var n=0,f=t.isDark(o,i),a=-1;a<=1;a++)if(!(o+a<0||e<=o+a))for(var u=-1;u<=1;u++)i+u<0||e<=i+u||(a!=0||u!=0)&&f==t.isDark(o+a,i+u)&&n++;n>5&&(r+=3+n-5)}for(var o=0;o<e-1;o++)for(var i=0;i<e-1;i++){var c=0;t.isDark(o,i)&&c++,t.isDark(o+1,i)&&c++,t.isDark(o,i+1)&&c++,t.isDark(o+1,i+1)&&c++,(c==0||c==4)&&(r+=3)}for(var o=0;o<e;o++)for(var i=0;i<e-6;i++)t.isDark(o,i)&&!t.isDark(o,i+1)&&t.isDark(o,i+2)&&t.isDark(o,i+3)&&t.isDark(o,i+4)&&!t.isDark(o,i+5)&&t.isDark(o,i+6)&&(r+=40);for(var i=0;i<e;i++)for(var o=0;o<e-6;o++)t.isDark(o,i)&&!t.isDark(o+1,i)&&t.isDark(o+2,i)&&t.isDark(o+3,i)&&t.isDark(o+4,i)&&!t.isDark(o+5,i)&&t.isDark(o+6,i)&&(r+=40);for(var s=0,i=0;i<e;i++)for(var o=0;o<e;o++)t.isDark(o,i)&&s++;var l=Math.abs(100*s/e/e-50)/5;return r+=10*l};var s={glog:function(t){if(t<1)throw new Error("glog("+t+")");return this.LOG_TABLE[t]},gexp:function(t){for(;t<0;)t+=255;for(;t>=255;)t-=255;return this.EXP_TABLE[t]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)};for(var l=0;l<8;l++)s.EXP_TABLE[l]=1<<l;for(var l=8;l<256;l++)s.EXP_TABLE[l]=s.EXP_TABLE[l-4]^s.EXP_TABLE[l-5]^s.EXP_TABLE[l-6]^s.EXP_TABLE[l-8];for(var l=0;l<255;l++)s.LOG_TABLE[s.EXP_TABLE[l]]=l;var m=function(t,e){if(typeof t.length=="undefined")throw new Error(t.length+"/"+e);for(var r=0;r<t.length&&t[r]==0;)r++;this.num=new Array(t.length-r+e);for(var o=0;o<t.length-r;o++)this.num[o]=t[o+r]};m.prototype={get:function(t){return this.num[t]},getLength:function(){return this.num.length},multiply:function(t){for(var e=new Array(this.getLength()+t.getLength()-1),r=0;r<this.getLength();r++)for(var o=0;o<t.getLength();o++)e[r+o]^=s.gexp(s.glog(this.get(r))+s.glog(t.get(o)));return new m(e,0)},mod:function(t){if(this.getLength()-t.getLength()<0)return this;for(var e=s.glog(this.get(0))-s.glog(t.get(0)),r=new Array(this.getLength()),o=0;o<this.getLength();o++)r[o]=this.get(o);for(var o=0;o<t.getLength();o++)r[o]^=s.gexp(s.glog(t.get(o))+e);return new m(r,0).mod(t)}},t.prototype={getLength:function(){return this.parsedData.length},parsedData:[]},f.getRSBlocks=function(t,e){var r=function(t,e){for(var r=0;r<n.length;r+=3)if(n[r]==t&&n[r+1]==e)return[n[r+2]];return void 0}(t,e);if(typeof r=="undefined")throw new Error("badRS:"+t+"/"+e);for(var o=r[0],i=[],f=0;f<1;f++)i.push({totalCount:o,dataCount:e});return i},u.prototype={get:function(t){var e=Math.floor(t/8);return((this.buffer[e]>>>7-t%8)&1)==1},put:function(t,e){for(var r=0;r<e;r++)this.putBit(((t>>>e-r-1)&1)==1)},getLengthInBits:function(){return this.length},putBit:function(t){var e=Math.floor(this.length/8);this.buffer.length<=e&&this.buffer.push(0),t&&(this.buffer[e]|=128>>>this.length%8),this.length++},setItem:function(t){for(var e=0;e<t.parsedData.length;e++)this.put(t.parsedData[e],8)}};var o=function(t,e){this._htOption={width:280,height:280,typeNumber:10,colorDark:"#000000",colorLight:"#ffffff"},this._el=t;if(e){for(var r in e)this._htOption[r]=e[r]}if(e.text)this.makeCode(e.text)};o.prototype.draw=function(t){var e=this._htOption,r=this._el,o=t.getModuleCount(),i=e.width/o,n=e.height/o,f=['<table style="border:0;border-collapse:collapse;margin:0;padding:0;border:none;">'];for(var a=0;a<o;a++){f.push('<tr style="margin:0;padding:0;height:',n,'px;">');for(var u=0;u<o;u++)f.push('<td style="margin:0;padding:0;width:',i,'px;background-color:',t.isDark(a,u)?e.colorDark:e.colorLight,';"></td>');f.push("</tr>")}f.push("</table>"),r.innerHTML=f.join("");var u=r.childNodes[0];u.style.width=e.width+"px",u.style.height=e.height+"px"},o.prototype.makeCode=function(t){var r=new e(this._htOption.typeNumber,0);r.addData(t),r.make(),this.draw(r)},QRCodeBuilder=o}();
+        window.onload = loadInvoiceData;
     </script>
 </body>
 </html>
