@@ -43,18 +43,18 @@
         .text-left { text-align: left !important; padding-left: 10px !important; }
         .text-right { text-align: right !important; padding-right: 10px !important; }
         
-        /* Phần chứa Summary (phải) và QR (trái) xếp ngang trên app */
-        .bill-footer-container { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px; }
+        /* Phần chứa Summary và QR xếp ngang trên app */
+        .bill-footer-container { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px; gap: 20px; }
         
-        /* Khung chứa mã QR bự và thông tin Bank xếp dọc gọn gàng */
-        .qr-bank-container { width: 45%; display: flex; flex-direction: column; align-items: center; border: 1px dashed #4db7b3; padding: 20px; border-radius: 8px; background: #fafcfc; box-sizing: border-box; text-align: center; }
-        #qrcode { width: 280px; height: 280px; background-color: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; }
+        /* CÂN CHỈNH MỚI: Khung chứa QR và Bank nằm ngang trên app để bill không bị quá dài */
+        .qr-bank-container { width: 55%; display: flex; flex-direction: row; align-items: center; border: 1px dashed #4db7b3; padding: 20px; border-radius: 8px; background: #fafcfc; box-sizing: border-box; gap: 20px; }
+        #qrcode { width: 200px; height: 200px; min-width: 200px; background-color: #fff; display: flex; align-items: center; justify-content: center; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; }
         #qrcode canvas, #qrcode img { width: 100% !important; height: 100% !important; display: block; }
-        .bank-details { font-size: 16px; line-height: 1.6; color: #444; width: 100%; }
+        .bank-details { font-size: 16px; line-height: 1.7; color: #444; flex: 1; text-align: left; }
         .qr-title { font-weight: bold; color: #4db7b3; text-transform: uppercase; margin-bottom: 8px; font-size: 15px; letter-spacing: 0.5px; }
         
-        /* Khu vực tính tiền tổng cộng nằm bên phải */
-        .summary-container { width: 50%; border-collapse: collapse; font-size: 16px; box-sizing: border-box; }
+        /* CÂN CHỈNH MỚI: Khu vực tính tiền tổng cộng co gọn về đúng 40% */
+        .summary-container { width: 40%; border-collapse: collapse; font-size: 16px; box-sizing: border-box; }
         .summary-container td { padding: 10px 0; }
         .summary-label { text-align: left; color: #555; }
         .summary-value { text-align: right; font-weight: 600; padding-right: 5px; }
@@ -63,7 +63,7 @@
         /* Chân trang cảm ơn */
         .footer-thanks { text-align: center; font-size: 16px; font-style: italic; color: #555; margin-top: 40px; border-top: 1px dashed #cee5e4; padding-top: 20px; width: 100%; order: 3; }
 
-        /* CẤU HÌNH IN BILL K58 / K80 BLUETOOTH */
+        /* CẤU HÌNH ĐỘC LẬP KHI IN BILL K58 / K80 BLUETOOTH */
         @media print {
             body { background: white; margin: 0; padding: 0; color: #000; font-size: 11px; }
             .bill-controls { display: none !important; }
@@ -75,12 +75,17 @@
             .info-section { font-size: 11px; margin-bottom: 15px; }
             .invoice-table th { font-size: 11px; padding: 6px 4px; background-color: transparent !important; color: #000 !important; border: 1px solid #000; }
             .invoice-table td { font-size: 11px; padding: 6px 4px; border-bottom: 1px dashed #000; color: #000; }
-            .bill-footer-container { display: flex !important; flex-direction: column !important; width: 100% !important; margin-top: 10px; }
+            
+            /* Bẻ khối chân trang thành dọc 100% khi in giấy */
+            .bill-footer-container { display: flex !important; flex-direction: column !important; width: 100% !important; margin-top: 10px; gap: 10px; }
             .summary-container { width: 100% !important; order: 1 !important; font-size: 11px; margin-bottom: 15px; }
             .total-row { font-size: 13px; color: #000 !important; border-top: 1px dashed #000; }
-            .qr-bank-container { width: 100% !important; order: 2 !important; border: none; padding: 15px 0; background: transparent; display: flex !important; flex-direction: column !important; align-items: center; border-top: 1px dashed #000; }
-            #qrcode { width: 140px !important; height: 140px !important; padding: 5px; margin-bottom: 8px; }
-            .bank-details { font-size: 11px; line-height: 1.5; text-align: center; }
+            
+            /* IN K58/K80: Ép thông tin ngân hàng nhảy xuống dưới mã QR */
+            .qr-bank-container { width: 100% !important; order: 2 !important; border: none; padding: 15px 0; background: transparent; display: flex !important; flex-direction: column !important; align-items: center; gap: 8px; border-top: 1px dashed #000; }
+            #qrcode { width: 140px !important; height: 140px !important; min-width: 140px !important; padding: 5px; }
+            .bank-details { font-size: 11px; line-height: 1.5; text-align: center; width: 100%; }
+            
             .footer-thanks { font-size: 11px; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; order: 3 !important; display: block; }
         }
     </style>
@@ -197,7 +202,6 @@
 
                 let qrStr = field("00", "01") + field("01", "12") + field("38", merchantInfo) + field("53", "704"); 
                 
-                // ĐƯA SỐ TIỀN ĐỘNG VÀO MÃ QR NẾU CÓ DỮ LIỆU TỪ APPSHEET
                 if (amount) {
                     const cleanAmount = String(amount).replace(/\D/g, '');
                     if (parseInt(cleanAmount) > 0) qrStr += field("54", cleanAmount);
@@ -220,7 +224,6 @@
                 if (!encodedData) return;
                 let jsonString = decodeURIComponent(encodedData).trim();
                 
-                // Chuẩn hóa chuỗi JSON mảng ChiTiet lồng nhau từ AppSheet
                 const chiTietStart = jsonString.indexOf('"ChiTiet": [');
                 if (chiTietStart !== -1) {
                     const prefix = jsonString.substring(0, chiTietStart);
@@ -236,7 +239,6 @@
                 
                 const data = JSON.parse(jsonString);
                 
-                // Đổ văn bản thông tin cơ bản lên bill
                 document.getElementById('txtTenSpa').innerText = data.TenSpa || '';
                 document.getElementById('txtDiaChi').innerText = data.DiaChi || '';
                 document.getElementById('txtSDT').innerText = data.SDT ? 'Hotline: ' + data.SDT : '';
@@ -247,8 +249,7 @@
                 document.getElementById('txtTongTien').innerText = data.TongTien ? formatNumber(data.TongTien) : '0';
                 document.getElementById('txtThanhToan').innerText = data.ThanhToan ? formatNumber(data.ThanhToan) : '0';
                 
-                // Đổ text hiển thị khu vực Bank động dưới chân QR
-                document.getElementById('lblTenNganHang').innerText = data.TenNganHang || 'Ngân hàng';
+                document.getElementById('lblTenNganHang').innerText = data.BankName || 'Ngân hàng';
                 document.getElementById('lblSTK').innerText = data.STK || '';
                 document.getElementById('lblChuTK').innerText = data.ChuTK ? data.ChuTK.toUpperCase() : '';
 
@@ -256,23 +257,23 @@
                 element.dataset.mahd = data.MaHD || 'HD';
                 element.dataset.khach = data.TenKhach || 'Khach';
 
-                // --- KHỞI TẠO VÀ NẠP BIẾN ĐỘNG VÀO MÃ QR CHUẨN VIETQR ---
-                const bankBin = data.MaBIN || '';       // Nhận động mã BIN từ AppSheet
-                const bankNumber = data.STK || '';     // Nhận động Số tài khoản từ AppSheet
-                const rawAmount = data.ThanhToan || '0'; // Nhận động Số tiền từ AppSheet đưa vào QR
-                const nameOwner = data.ChuTK || '';     // Nhận động Tên chủ TK từ AppSheet
+                const bankBin = data.BankBIN || '';       
+                const bankNumber = data.STK || '';     
+                const rawAmount = data.ThanhToan || '0'; 
+                const nameOwner = data.ChuTK || '';     
                 
-                // Làm sạch tiền để nạp vào QR payload
                 const cleanAmountNum = rawAmount.toString().replace(/[^0-9]/g, '');
 
                 document.getElementById('qrcode').innerHTML = "";
                 
                 if (bankBin && bankNumber) {
-                    // Tạo chuỗi VietQR chứa tiền động từ AppSheet
                     const qrPayload = VietQR.generatePayload(bankBin, bankNumber, cleanAmountNum, nameOwner);
                     
                     if (qrPayload) {
-                        const targetSize = window.matchMedia("print").matches ? 160 : 280;
+                        // Tính toán size động: Nếu in giấy bóp về 140px, xem app giãn bự 200px
+                        const isPrintMode = window.matchMedia("print").matches;
+                        const targetSize = isPrintMode ? 140 : 200;
+                        
                         new QRCode(document.getElementById("qrcode"), {
                             text: qrPayload,
                             width: targetSize,
@@ -286,7 +287,6 @@
                     document.getElementById('qrcode').innerHTML = "<div style='color:#777;font-size:13px;padding:30px;font-style:italic;'>Chưa cấu hình tài khoản nhận tiền</div>";
                 }
 
-                // Đổ danh sách bảng dịch vụ
                 const tbody = document.getElementById('tblChiTiet');
                 tbody.innerHTML = '';
                 if(data.ChiTiet && data.ChiTiet.length > 0) {
@@ -301,7 +301,7 @@
                                 <td>${item.SoLuong || 1}</td>
                                 <td class="text-right">${item.DonGia ? formatNumber(item.DonGia) : '0'}</td>
                                 <td class="text-right" style="color: #e74c3c; font-weight: 500;">${displayDiscount}</td>
-                                <td class="text-right" style="font-weight: 600;">${item.ThanhToanDV ? formatNumber(item.ThanhToanDV) : (item.ThanhToan ? formatNumber(item.ThanhToan) : '0')}</td>
+                                <td class="text-right" style="font-weight: 600;">${item.ThanhTien ? formatNumber(item.ThanhTien) : '0'}</td>
                             </tr>`;
                             tbody.insertAdjacentHTML('beforeend', row);
                         }
@@ -311,7 +311,7 @@
                     tbody.innerHTML = `<tr><td colspan="5" style="color: #999; padding: 20px; font-style: italic;">Không có thông tin dịch vụ</td></tr>`;
                 }
             } catch (error) {
-                console.error("Lỗi biên dịch cấu trúc:", error);
+                console.error("Lỗi:", error);
             }
         }
 
@@ -321,7 +321,6 @@
             return cleanNum ? Number(cleanNum).toLocaleString('en-US') : '0';
         }
 
-        // --- Các hàm chụp xuất ảnh giữ nguyên ổn định ---
         function copyBill(element) { 
             const c = document.querySelector('.bill-controls'); c.style.display = 'none'; 
             html2canvas(element, { scale: 2, useCORS: true }).then(canvas => { 
