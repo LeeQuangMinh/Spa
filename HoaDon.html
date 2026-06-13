@@ -46,14 +46,14 @@
         /* Phần chứa Summary và QR xếp ngang trên app */
         .bill-footer-container { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-top: 20px; gap: 20px; }
         
-        /* CÂN CHỈNH MỚI: Khung chứa QR và Bank nằm ngang trên app để bill không bị quá dài */
-        .qr-bank-container { width: 55%; display: flex; flex-direction: row; align-items: center; border: 1px dashed #4db7b3; padding: 20px; border-radius: 8px; background: #fafcfc; box-sizing: border-box; gap: 20px; }
-        #qrcode { width: 200px; height: 200px; min-width: 200px; background-color: #fff; display: flex; align-items: center; justify-content: center; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; }
-        #qrcode canvas, #qrcode img { width: 100% !important; height: 100% !important; display: block; }
-        .bank-details { font-size: 16px; line-height: 1.7; color: #444; flex: 1; text-align: left; }
-        .qr-title { font-weight: bold; color: #4db7b3; text-transform: uppercase; margin-bottom: 8px; font-size: 15px; letter-spacing: 0.5px; }
+        /* Khung chứa mã QR bên trái và thông tin Bank xếp dọc ngay bên phải */
+        .qr-bank-container { width: 55%; display: flex; flex-direction: row; align-items: center; border: 1px dashed #4db7b3; padding: 15px; border-radius: 8px; background: #fafcfc; box-sizing: border-box; gap: 15px; }
+        #qrcode { width: 200px; height: 200px; min-width: 200px !important; max-width: 200px !important; background-color: #fff; display: block !important; padding: 10px; border: 1px solid #eee; border-radius: 4px; box-sizing: border-box; }
+        #qrcode canvas, #qrcode img { width: 100% !important; height: 100% !important; display: block !important; }
+        .bank-details { font-size: 15px; line-height: 1.6; color: #444; flex: 1; text-align: left; }
+        .qr-title { font-weight: bold; color: #4db7b3; text-transform: uppercase; margin-bottom: 6px; font-size: 14px; letter-spacing: 0.5px; }
         
-        /* CÂN CHỈNH MỚI: Khu vực tính tiền tổng cộng co gọn về đúng 40% */
+        /* Khu vực tính tiền tổng cộng co gọn về đúng 40% bề ngang */
         .summary-container { width: 40%; border-collapse: collapse; font-size: 16px; box-sizing: border-box; }
         .summary-container td { padding: 10px 0; }
         .summary-label { text-align: left; color: #555; }
@@ -76,14 +76,13 @@
             .invoice-table th { font-size: 11px; padding: 6px 4px; background-color: transparent !important; color: #000 !important; border: 1px solid #000; }
             .invoice-table td { font-size: 11px; padding: 6px 4px; border-bottom: 1px dashed #000; color: #000; }
             
-            /* Bẻ khối chân trang thành dọc 100% khi in giấy */
             .bill-footer-container { display: flex !important; flex-direction: column !important; width: 100% !important; margin-top: 10px; gap: 10px; }
             .summary-container { width: 100% !important; order: 1 !important; font-size: 11px; margin-bottom: 15px; }
             .total-row { font-size: 13px; color: #000 !important; border-top: 1px dashed #000; }
             
-            /* IN K58/K80: Ép thông tin ngân hàng nhảy xuống dưới mã QR */
+            /* IN K58/K80: Bẻ layout về dạng đứng, ép thông tin ngân hàng nhảy xuống dưới mã QR */
             .qr-bank-container { width: 100% !important; order: 2 !important; border: none; padding: 15px 0; background: transparent; display: flex !important; flex-direction: column !important; align-items: center; gap: 8px; border-top: 1px dashed #000; }
-            #qrcode { width: 140px !important; height: 140px !important; min-width: 140px !important; padding: 5px; }
+            #qrcode { width: 140px !important; height: 140px !important; min-width: 140px !important; max-width: 140px !important; padding: 5px; }
             .bank-details { font-size: 11px; line-height: 1.5; text-align: center; width: 100%; }
             
             .footer-thanks { font-size: 11px; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; order: 3 !important; display: block; }
@@ -270,7 +269,6 @@
                     const qrPayload = VietQR.generatePayload(bankBin, bankNumber, cleanAmountNum, nameOwner);
                     
                     if (qrPayload) {
-                        // Tính toán size động: Nếu in giấy bóp về 140px, xem app giãn bự 200px
                         const isPrintMode = window.matchMedia("print").matches;
                         const targetSize = isPrintMode ? 140 : 200;
                         
